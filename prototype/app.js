@@ -37,7 +37,7 @@ function draw() {
   $("now-number").textContent = pad(current);
   $("now-channel").textContent = channel.name;
   $("remote-title").textContent = channel.name;
-  $("remote-index").textContent = `${pad(current)} / ${pad(channels.length - 1)}`;
+  $("remote-index").textContent = `${pad(current)} / ${pad(channels.length)}`;
   panel.hidden = !open;
   $("screen-help").textContent = open ? "Zurück zum Bild" : "OK für Senderliste";
   items.replaceChildren();
