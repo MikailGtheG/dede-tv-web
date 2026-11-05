@@ -1,0 +1,42 @@
+name: Web prototype static checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JavaScript syntax
+        run: node --check prototype/app.js
+      - name: Validate HTML structure and no external dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Inspector(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=True)
+                  self.ids=set()
+                  self.scripts=[]
+                  self.styles=[]
+                  self.csp=False
+              def handle_starttag(self, tag, attrs):
+                  d=dict(attrs)
+                  if "id" in d:
+                      assert d["id"] not in self.ids, "duplicate element ID"
+                      self.ids.add(d["id"])
+                  if tag=="script": self.scripts.append(d.get("src"))
+                  if tag=="link" and d.get("rel")=="stylesheet": self.styles.append(d.get("href"))
+                  if tag=="meta" and d.get("http-equiv")=="Content-Security-Policy": self.csp=True
+          checker=Inspector()
+          checker.feed(Path("prototype/index.html").read_text())
+          assert checker.csp
+          assert checker.scripts==["app.js"]
+          assert checker.styles==["styles.css"]
+          assert {"channel-overlay","channel-items","now-title","remote-title"} <= checker.ids
+          PY
