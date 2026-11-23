@@ -25,10 +25,13 @@ pub fn random_bytes<const N: usize>() -> [u8; N] {
 }
 
 pub fn random_token() -> String {
-    random_bytes::<32>()
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut token = String::with_capacity(64);
+    for byte in random_bytes::<32>() {
+        token.push(HEX[usize::from(byte >> 4)] as char);
+        token.push(HEX[usize::from(byte & 15)] as char);
+    }
+    token
 }
 
 /// Comparison time does not depend on where the inputs differ.
