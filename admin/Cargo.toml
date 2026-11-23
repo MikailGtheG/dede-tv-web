@@ -1,0 +1,14 @@
+[package]
+name = "dede-tv-admin"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Dede TV administration console (local web interface)"
+
+[dependencies]
+argon2 = "0.5"
+getrandom = "0.2"
+tiny_http = "0.12"
+
+[profile.release]
+panic = "abort"
