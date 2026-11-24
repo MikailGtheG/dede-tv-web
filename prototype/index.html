@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Dede TV · Fernbedienung (Designprototyp)</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="emblem" aria-hidden="true">D</span>
+        <span><strong>DEDE TV</strong><small>OS · CONTROL</small></span>
+      </div>
+      <div class="session"><span class="dot"></span> DEMO · NICHT VERBUNDEN</div>
+    </header>
+    <main class="layout">
+      <section class="television" aria-label="Fernsehansicht im Demo-Modus">
+        <div class="ambient" aria-hidden="true"></div>
+        <p class="screen-top">DEDE TV OS <span>LIVE · SIMULATION</span></p>
+        <div class="central">
+          <p class="eyebrow">JETZT AUF SENDUNG</p>
+          <h1 id="now-title">Kanal D</h1>
+          <p id="now-description">Vorschau des Senderwechsels · keine Videowiedergabe</p>
+        </div>
+        <nav class="channel-overlay" id="channel-overlay" aria-label="Senderliste" hidden>
+          <div class="overlay-heading">SENDER</div>
+          <div id="channel-items" class="channel-items"></div>
+          <div class="overlay-tip">↑ ↓ auswählen &nbsp;·&nbsp; OK bestätigen &nbsp;·&nbsp; Zurück schließen</div>
+        </nav>
+        <div class="tv-status">
+          <div class="channel-badge"><span id="now-number">03</span><span class="divider"></span><span id="now-channel">Kanal D</span></div>
+          <span class="screen-help" id="screen-help">OK für Senderliste</span>
+        </div>
+      </section>
+      <aside class="remote" aria-label="Interaktive Demo-Fernbedienung">
+        <div class="aside-header">
+          <div><p class="eyebrow">FERNBEDIENUNG</p><h2>Einfach fernsehen.</h2></div>
+          <span class="remote-pill">DEMO</span>
+        </div>
+        <div class="direction-pad" aria-label="Navigation">
+          <button class="navkey up" data-action="up" aria-label="Nach oben">↑</button>
+          <button class="navkey left" data-action="back" aria-label="Zurück">‹</button>
+          <button class="navkey ok" data-action="ok" aria-label="OK">OK</button>
+          <button class="navkey right" data-action="open" aria-label="Senderliste öffnen">≡</button>
+          <button class="navkey down" data-action="down" aria-label="Nach unten">↓</button>
+        </div>
+        <div class="channel-controls">
+          <span>PROGRAMM</span>
+          <button data-action="previous" aria-label="Vorheriger Sender">−</button>
+          <button data-action="next" aria-label="Nächster Sender">+</button>
+        </div>
+        <div class="nowplaying">
+          <div><span class="eyebrow">AKTUELLER SENDER</span><strong id="remote-title">Kanal D</strong></div>
+          <span id="remote-index">03 / 06</span>
+        </div>
+        <p class="warning">Designprototyp: Die Steuerung simuliert Senderwechsel ausschließlich in diesem Browser. Es besteht keine Verbindung zu Kodi oder einem Fernseher.</p>
+      </aside>
+    </main>
+    <footer>Tastatur: ↑ ↓ · Enter · Esc · Bild ↑/↓ <span>Konzeptstand · Dede TV OS</span></footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,78 @@
+name: Web prototype static checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JavaScript syntax
+        run: node --check prototype/app.js
+      - name: Validate HTML structure and no external dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Inspector(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=True)
+                  self.ids=set()
+                  self.scripts=[]
+                  self.styles=[]
+                  self.csp=False
+              def handle_starttag(self, tag, attrs):
+                  d=dict(attrs)
+                  if "id" in d:
+                      assert d["id"] not in self.ids, "duplicate element ID"
+                      self.ids.add(d["id"])
+                  if tag=="script": self.scripts.append(d.get("src"))
+                  if tag=="link" and d.get("rel")=="stylesheet": self.styles.append(d.get("href"))
+                  if tag=="meta" and d.get("http-equiv")=="Content-Security-Policy": self.csp=True
+          checker=Inspector()
+          checker.feed(Path("prototype/index.html").read_text())
+          assert checker.csp
+          assert checker.scripts==["app.js"]
+          assert checker.styles==["styles.css"]
+          assert {"channel-overlay","channel-items","now-title","remote-title"} <= checker.ids
+          PY
+  admin:
+    # Same compiler as the Debian 13 appliance build.
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    defaults:
+      run:
+        working-directory: admin
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Debian 13 Rust toolchain
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            cargo rustc rustfmt rust-clippy ca-certificates curl build-essential
+          rustc --version
+      - run: cargo fmt -- --check
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo test --all-targets --locked
+      - name: Serve setup page and refuse a cross-site POST
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --locked
+          d="$(mktemp -d)"; mkdir "$d/state" "$d/run"
+          DEDE_ADMIN_LISTEN=127.0.0.1:18080 DEDE_ADMIN_STATE="$d/state" \
+            DEDE_ADMIN_RUNTIME="$d/run" DEDE_UI_CONFIG="$d/ui.conf" \
+            target/release/dede-tv-admin & pid=$!
+          trap 'kill $pid' EXIT
+          for _ in $(seq 50); do curl -fs http://127.0.0.1:18080/setup -o "$d/page" && break; sleep 0.2; done
+          grep -q 'Einrichtungscode vom Fernseher' "$d/page"
+          test "$(stat -c %a "$d/run/setup-code")" = 640
+          grep -Eq '^[0-9]{8}$' "$d/run/setup-code"
+          status=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: http://evil.example' \
+            --data 'code=1&password=x&repeat=x' http://127.0.0.1:18080/setup)
+          test "$status" = 403
+          test ! -e "$d/state/password"
