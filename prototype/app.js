@@ -123,6 +123,10 @@ document.querySelectorAll("[data-action]").forEach((button) => {
 });
 
 document.addEventListener("keydown", (event) => {
+  // Focused buttons already dispatch their own click on Enter. Handling the
+  // bubbled keydown as a remote command as well would perform two actions
+  // (for example, CH+ skips two channels instead of one).
+  if (event.key === "Enter" && event.target?.closest?.("button")) return;
   const keyboard = {
     Enter: "ok",
     Escape: "back",
