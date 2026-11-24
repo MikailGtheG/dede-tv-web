@@ -15,8 +15,11 @@ const items = $("channel-items");
 
 function restoreIndex() {
   try {
-    const value = Number.parseInt(localStorage.getItem("dede-demo-channel") || "2", 10);
-    return Number.isInteger(value) && value >= 0 && value < channels.length ? value : 2;
+    const stored = localStorage.getItem("dede-demo-channel");
+    // Reject partial numbers (e.g. "2junk") instead of silently selecting a channel.
+    if (stored === null || !/^(0|[1-9][0-9]*)$/.test(stored)) return 2;
+    const value = Number(stored);
+    return Number.isSafeInteger(value) && value < channels.length ? value : 2;
   } catch {
     return 2;
   }
