@@ -233,16 +233,11 @@ impl Throttle {
         if self.recent.len() >= GLOBAL_FAILURES_PER_MINUTE {
             return false;
         }
-        match self.per_address.get(&address) {
-            Some((count, since)) if *count >= MAX_FAILURES => {
-                if now.duration_since(*since) < LOCKOUT {
-                    return false;
-                }
-                self.per_address.remove(&address);
-                true
-            }
-            _ => true,
-        }
+        self.per_address
+            .retain(|_, (_, since)| now.duration_since(*since) < LOCKOUT);
+        self.per_address
+            .get(&address)
+            .is_none_or(|(count, _)| *count < MAX_FAILURES)
     }
 
     pub fn failed(&mut self, address: IpAddr, now: Instant) {
@@ -357,6 +352,20 @@ mod tests {
         assert!(!throttle.allowed(a, now));
         assert!(throttle.allowed(b, now));
         assert!(throttle.allowed(a, now + LOCKOUT));
+    }
+
+    #[test]
+    fn throttle_forgets_old_partial_failures() {
+        let mut throttle = Throttle::default();
+        let address = IpAddr::from([192, 168, 1, 20]);
+        let now = Instant::now();
+        for _ in 0..MAX_FAILURES - 1 {
+            throttle.failed(address, now);
+        }
+        let later = now + LOCKOUT;
+        assert!(throttle.allowed(address, later));
+        throttle.failed(address, later);
+        assert!(throttle.allowed(address, later));
     }
 
     #[test]
