@@ -67,6 +67,40 @@ pub enum Text {
     RequestRejected,
     SavingFailed,
     PasswordSaved,
+    ChannelsTitle,
+    ChannelsIntro,
+    NoChannels,
+    NewChannel,
+    ChannelName,
+    ChannelNumber,
+    NumberHint,
+    Create,
+    Films,
+    NoFilms,
+    UploadFilms,
+    UploadHint,
+    Upload,
+    Delete,
+    DeleteChannel,
+    DeleteChannelHint,
+    SendToTv,
+    SendToTvHint,
+    Applying,
+    ApplyingHint,
+    Applied,
+    ApplyFailed,
+    Back,
+    NameInvalid,
+    NumberInvalid,
+    NumberTaken,
+    TooManyChannels,
+    UploadDone,
+    UploadBadName,
+    UploadExists,
+    UploadFailed,
+    ConfigUnreadable,
+    FilmDeleted,
+    FolderFailed,
 }
 
 pub fn t(lang: Lang, text: Text) -> &'static str {
@@ -165,6 +199,142 @@ pub fn t(lang: Lang, text: Text) -> &'static str {
         (Lang::De, PasswordSaved) => "Das Passwort ist gespeichert.",
         (Lang::Tr, PasswordSaved) => "Şifre kaydedildi.",
         (Lang::En, PasswordSaved) => "The password has been saved.",
+
+        (Lang::De, ChannelsTitle) => "Eigene Sender",
+        (Lang::Tr, ChannelsTitle) => "Kendi kanallarım",
+        (Lang::En, ChannelsTitle) => "Own channels",
+
+        (Lang::De, ChannelsIntro) => "Ein eigener Sender spielt die Filme aus seinem Ordner rund um die Uhr ab, wie ein Fernsehsender.",
+        (Lang::Tr, ChannelsIntro) => "Kendi kanalınız, klasöründeki filmleri bir televizyon kanalı gibi günün her saatinde oynatır.",
+        (Lang::En, ChannelsIntro) => "An own channel plays the films in its folder around the clock, like a TV channel.",
+
+        (Lang::De, NoChannels) => "Noch keine eigenen Sender.",
+        (Lang::Tr, NoChannels) => "Henüz kendi kanalınız yok.",
+        (Lang::En, NoChannels) => "No own channels yet.",
+
+        (Lang::De, NewChannel) => "Neuer Sender",
+        (Lang::Tr, NewChannel) => "Yeni kanal",
+        (Lang::En, NewChannel) => "New channel",
+
+        (Lang::De, ChannelName) => "Name des Senders",
+        (Lang::Tr, ChannelName) => "Kanal adı",
+        (Lang::En, ChannelName) => "Channel name",
+
+        (Lang::De, ChannelNumber) => "Sendernummer",
+        (Lang::Tr, ChannelNumber) => "Kanal numarası",
+        (Lang::En, ChannelNumber) => "Channel number",
+
+        (Lang::De, NumberHint) => "Unter dieser Nummer wählen Sie den Sender auf der Fernbedienung.",
+        (Lang::Tr, NumberHint) => "Kanalı kumandada bu numarayla seçersiniz.",
+        (Lang::En, NumberHint) => "You select the channel with this number on the remote.",
+
+        (Lang::De, Create) => "Sender anlegen",
+        (Lang::Tr, Create) => "Kanalı oluştur",
+        (Lang::En, Create) => "Create channel",
+
+        (Lang::De, Films) => "Filme",
+        (Lang::Tr, Films) => "Filmler",
+        (Lang::En, Films) => "Films",
+
+        (Lang::De, NoFilms) => "Noch keine Filme. Laden Sie unten Filme hoch.",
+        (Lang::Tr, NoFilms) => "Henüz film yok. Aşağıdan film yükleyin.",
+        (Lang::En, NoFilms) => "No films yet. Upload films below.",
+
+        (Lang::De, UploadFilms) => "Filme hochladen",
+        (Lang::Tr, UploadFilms) => "Film yükle",
+        (Lang::En, UploadFilms) => "Upload films",
+
+        (Lang::De, UploadHint) => "Videodateien wie MP4 oder MKV. Große Dateien brauchen einige Minuten, bitte die Seite so lange offen lassen.",
+        (Lang::Tr, UploadHint) => "MP4 veya MKV gibi video dosyaları. Büyük dosyalar birkaç dakika sürer, lütfen sayfayı bu süre açık bırakın.",
+        (Lang::En, UploadHint) => "Video files such as MP4 or MKV. Large files take a few minutes; please keep the page open.",
+
+        (Lang::De, Upload) => "Hochladen",
+        (Lang::Tr, Upload) => "Yükle",
+        (Lang::En, Upload) => "Upload",
+
+        (Lang::De, Delete) => "Löschen",
+        (Lang::Tr, Delete) => "Sil",
+        (Lang::En, Delete) => "Delete",
+
+        (Lang::De, DeleteChannel) => "Sender löschen",
+        (Lang::Tr, DeleteChannel) => "Kanalı sil",
+        (Lang::En, DeleteChannel) => "Delete channel",
+
+        (Lang::De, DeleteChannelHint) => "Die Filme bleiben im Ordner erhalten.",
+        (Lang::Tr, DeleteChannelHint) => "Filmler klasörde kalır.",
+        (Lang::En, DeleteChannelHint) => "The films stay in the folder.",
+
+        (Lang::De, SendToTv) => "Auf den Fernseher bringen",
+        (Lang::Tr, SendToTv) => "Televizyona aktar",
+        (Lang::En, SendToTv) => "Send to the TV",
+
+        (Lang::De, SendToTvHint) => "Neue oder gelöschte Filme erscheinen erst nach diesem Schritt. Der Fernseher startet dafür kurz neu.",
+        (Lang::Tr, SendToTvHint) => "Yeni veya silinen filmler ancak bu adımdan sonra görünür. Televizyon bunun için kısa süre yeniden başlar.",
+        (Lang::En, SendToTvHint) => "New or deleted films appear only after this step. The TV restarts briefly for it.",
+
+        (Lang::De, Applying) => "Wird übernommen …",
+        (Lang::Tr, Applying) => "Aktarılıyor …",
+        (Lang::En, Applying) => "Applying …",
+
+        (Lang::De, ApplyingHint) => "Der Fernseher startet gleich kurz neu. Diese Seite aktualisiert sich selbst.",
+        (Lang::Tr, ApplyingHint) => "Televizyon birazdan kısa süre yeniden başlar. Bu sayfa kendini yeniler.",
+        (Lang::En, ApplyingHint) => "The TV will restart briefly. This page refreshes itself.",
+
+        (Lang::De, Applied) => "Fertig. Der Fernseher zeigt die Änderung in etwa einer Minute.",
+        (Lang::Tr, Applied) => "Tamam. Televizyon değişikliği yaklaşık bir dakika içinde gösterir.",
+        (Lang::En, Applied) => "Done. The TV shows the change in about a minute.",
+
+        (Lang::De, ApplyFailed) => "Übernahme fehlgeschlagen. Fehlercode:",
+        (Lang::Tr, ApplyFailed) => "Aktarma başarısız. Hata kodu:",
+        (Lang::En, ApplyFailed) => "Applying failed. Error code:",
+
+        (Lang::De, Back) => "Zurück",
+        (Lang::Tr, Back) => "Geri",
+        (Lang::En, Back) => "Back",
+
+        (Lang::De, NameInvalid) => "Bitte einen neuen Namen ohne Zeichen wie , \" [ ] wählen.",
+        (Lang::Tr, NameInvalid) => "Lütfen , \" [ ] gibi karakterler içermeyen yeni bir ad seçin.",
+        (Lang::En, NameInvalid) => "Please choose a new name without characters such as , \" [ ].",
+
+        (Lang::De, NumberInvalid) => "Bitte eine Nummer von 1 bis 9999 eingeben.",
+        (Lang::Tr, NumberInvalid) => "Lütfen 1 ile 9999 arasında bir numara girin.",
+        (Lang::En, NumberInvalid) => "Please enter a number from 1 to 9999.",
+
+        (Lang::De, NumberTaken) => "Diese Nummer hat schon ein anderer eigener Sender.",
+        (Lang::Tr, NumberTaken) => "Bu numara başka bir kanalınızda kullanılıyor.",
+        (Lang::En, NumberTaken) => "Another own channel already uses this number.",
+
+        (Lang::De, TooManyChannels) => "Es sind höchstens 50 eigene Sender möglich.",
+        (Lang::Tr, TooManyChannels) => "En fazla 50 kanal olabilir.",
+        (Lang::En, TooManyChannels) => "At most 50 own channels are possible.",
+
+        (Lang::De, UploadDone) => "Hochladen abgeschlossen. Mit „Auf den Fernseher bringen“ erscheinen die Filme im Programm.",
+        (Lang::Tr, UploadDone) => "Yükleme tamamlandı. Filmler „Televizyona aktar“ ile yayına girer.",
+        (Lang::En, UploadDone) => "Upload finished. “Send to the TV” puts the films on air.",
+
+        (Lang::De, UploadBadName) => "Diese Datei ist nicht erlaubt. Erlaubt sind Videodateien wie .mp4 oder .mkv.",
+        (Lang::Tr, UploadBadName) => "Bu dosyaya izin verilmiyor. .mp4 veya .mkv gibi video dosyaları kullanın.",
+        (Lang::En, UploadBadName) => "This file is not allowed. Use video files such as .mp4 or .mkv.",
+
+        (Lang::De, UploadExists) => "Ein Film mit diesem Namen ist schon da.",
+        (Lang::Tr, UploadExists) => "Bu adla bir film zaten var.",
+        (Lang::En, UploadExists) => "A film with this name already exists.",
+
+        (Lang::De, UploadFailed) => "Hochladen fehlgeschlagen. Ist genug Speicherplatz frei?",
+        (Lang::Tr, UploadFailed) => "Yükleme başarısız. Yeterli boş alan var mı?",
+        (Lang::En, UploadFailed) => "Upload failed. Is there enough free space?",
+
+        (Lang::De, ConfigUnreadable) => "Die Senderliste auf dem Gerät ist nicht lesbar.",
+        (Lang::Tr, ConfigUnreadable) => "Cihazdaki kanal listesi okunamıyor.",
+        (Lang::En, ConfigUnreadable) => "The channel list on the device cannot be read.",
+
+        (Lang::De, FilmDeleted) => "Film gelöscht. Mit „Auf den Fernseher bringen“ verschwindet er aus dem Programm.",
+        (Lang::Tr, FilmDeleted) => "Film silindi. „Televizyona aktar“ ile yayından kalkar.",
+        (Lang::En, FilmDeleted) => "Film deleted. “Send to the TV” takes it off air.",
+
+        (Lang::De, FolderFailed) => "Der Ordner für den Sender konnte nicht angelegt werden.",
+        (Lang::Tr, FolderFailed) => "Kanal klasörü oluşturulamadı.",
+        (Lang::En, FolderFailed) => "The channel folder could not be created.",
     }
 }
 

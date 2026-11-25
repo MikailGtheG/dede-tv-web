@@ -14,3 +14,14 @@ button.link{width:auto;margin:0;padding:8px 18px;background:transparent;color:va
 .msg{padding:14px 16px;border-radius:12px;margin:16px 0;background:#2a2220;color:var(--err)}
 .msg.ok{background:#1f2a22;color:var(--ok)}
 .hint{font-size:16px;color:var(--dim);margin-top:6px}
+h2{font-size:24px;margin:32px 0 8px}
+a{color:var(--accent)}
+.rows{display:flex;flex-direction:column;gap:10px;margin:16px 0}
+.row{display:flex;align-items:center;gap:16px;padding:16px 18px;border-radius:14px;background:var(--panel);color:var(--text);text-decoration:none;border:2px solid transparent}
+a.row:hover,a.row:focus{border-color:var(--accent)}
+.row form{margin-left:auto}
+.num{font-weight:700;color:var(--accent);min-width:2.5em}
+.size{color:var(--dim);font-size:16px}
+.button{display:inline-block;margin-top:20px;padding:16px 28px;border-radius:999px;background:var(--pill);color:#141414;font-weight:700;text-decoration:none}
+button.danger{background:#5a2a24;color:#fbe3dc}
+input[type=file]{padding:18px;background:var(--panel)}
