@@ -279,9 +279,10 @@ impl App {
                 };
                 Response::html(200, html::channel(lang, csrf, &channel, &films, notice))
             }
+            ["language"] => Response::html(200, html::language(lang, csrf)),
             ["apply", id] => {
                 let back = query_value(&request.query, "back")
-                    .filter(|b| b.starts_with("/channels"))
+                    .filter(|b| b.starts_with("/channels") || b == "/language")
                     .unwrap_or("/channels".into());
                 let state = match apply::outcome(&self.config.state_dir, id) {
                     apply::Outcome::Pending => html::ApplyState::Pending,
@@ -328,6 +329,25 @@ impl App {
         form: &[(String, String)],
     ) -> Response {
         let parts: Vec<&str> = request.path.trim_matches('/').split('/').collect();
+        if parts.as_slice() == ["language"] {
+            let Some(choice) = Lang::parse(field(form, "language")) else {
+                return Response::html(400, html::language(lang, csrf));
+            };
+            return match apply::submit_language(&self.config.state_dir, choice) {
+                Ok(id) => {
+                    eprintln!(
+                        "dede-tv-admin: language {} requested from {}",
+                        choice.code(),
+                        request.remote
+                    );
+                    Response::redirect(&format!("/apply/{id}?back=/language"))
+                }
+                Err(e) => {
+                    eprintln!("dede-tv-admin: cannot queue change: {e}");
+                    Response::html(500, html::language(lang, csrf))
+                }
+            };
+        }
         let Ok(mut list) = self.channel_list() else {
             return Response::html(
                 500,
@@ -1055,6 +1075,48 @@ mod tests {
         assert_eq!(f.app.session_csrf(Some("dede_session=nope")), None);
         assert_eq!(f.app.upload_target(5), Some(f.dir.join("media/film")));
         assert_eq!(f.app.upload_target(6), None);
+    }
+
+    #[test]
+    fn language_page_requests_the_change() {
+        let mut f = fixture();
+        let (cookie, csrf) = signed_in(&mut f);
+        let page = text(&get(&mut f.app, "/language", Some(&cookie)));
+        assert!(page.contains(r#"value="de" checked"#) && page.contains("Türkçe"));
+        let reply = post(
+            &mut f.app,
+            "/language",
+            &cookie,
+            &format!("csrf={csrf}&language=tr"),
+        );
+        assert!(header(&reply, "Location")
+            .unwrap()
+            .ends_with("?back=/language"));
+        let request = pending_request(&f);
+        assert_eq!(request["kind"], "language");
+        assert_eq!(request["language"], "tr");
+        assert_eq!(
+            post(
+                &mut f.app,
+                "/language",
+                &cookie,
+                &format!("csrf={csrf}&language=fr")
+            )
+            .status,
+            400
+        );
+        assert!(!f
+            .dir
+            .join("state/requests")
+            .read_dir()
+            .unwrap()
+            .any(|_| true));
+        // Once applied, the console itself speaks Turkish.
+        fs::write(f.dir.join("ui.conf"), "LANGUAGE=tr\n").unwrap();
+        assert!(
+            text(&get(&mut f.app, "/language", Some(&cookie))).contains(r#"value="tr" checked"#)
+        );
+        assert!(text(&get(&mut f.app, "/", Some(&cookie))).contains("Yönetim"));
     }
 
     #[test]
