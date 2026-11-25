@@ -307,8 +307,8 @@ impl App {
         Some((channel, films))
     }
 
-    fn submit(&self, list: &[Channel], back: &str) -> Response {
-        match apply::submit_channels(&self.config.state_dir, list) {
+    fn submit(&self, list: &[Channel], back: &str, refresh: bool) -> Response {
+        match apply::submit_channels(&self.config.state_dir, list, refresh) {
             Ok(id) => {
                 eprintln!("dede-tv-admin: channel change requested ({id})");
                 Response::redirect(&format!("/apply/{id}?back={back}"))
@@ -366,7 +366,7 @@ impl App {
                     "dede-tv-admin: channel {number} created from {}",
                     request.remote
                 );
-                self.submit(&list, &format!("/channels/{number}"))
+                self.submit(&list, &format!("/channels/{number}"), false)
             }
             ["apply"] => {
                 let back = field(form, "back");
@@ -377,7 +377,7 @@ impl App {
                 } else {
                     "/channels".to_string()
                 };
-                self.submit(&list, &back)
+                self.submit(&list, &back, true)
             }
             ["channels", n, "delete"] => {
                 let Some(number) = channels::parse_number(n) else {
@@ -392,7 +392,7 @@ impl App {
                     "dede-tv-admin: channel {number} deleted from {}",
                     request.remote
                 );
-                self.submit(&list, "/channels")
+                self.submit(&list, "/channels", false)
             }
             ["channels", n, "films", "delete"] => {
                 let Some((channel, _)) = self.channel_with_films(n) else {
@@ -1026,7 +1026,9 @@ mod tests {
         assert!(header(&reply, "Location")
             .unwrap()
             .ends_with("?back=/channels/5"));
-        assert_eq!(pending_request(&f)["channels"][0]["number"], 5);
+        let request = pending_request(&f);
+        assert_eq!(request["channels"][0]["number"], 5);
+        assert_eq!(request["refresh"], true);
         // Deleting the channel keeps its films' folder.
         let reply = post(
             &mut f.app,

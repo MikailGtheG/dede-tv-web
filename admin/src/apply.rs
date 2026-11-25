@@ -20,15 +20,20 @@ pub fn valid_id(id: &str) -> bool {
     id.len() == 32 && id.bytes().all(|b| b.is_ascii_hexdigit())
 }
 
-/// Ask for the full list of own channels to be applied; `refresh` also
-/// re-reads folders whose films changed.
-pub fn submit_channels(state: &Path, channels: &[Channel]) -> std::io::Result<String> {
+/// Ask for the full list of own channels to be applied. `refresh` makes the
+/// TV re-read the folders (films added or deleted) even if the list is the same.
+pub fn submit_channels(
+    state: &Path,
+    channels: &[Channel],
+    refresh: bool,
+) -> std::io::Result<String> {
     let id = random_token()[..32].to_string();
     let list: Vec<Value> = channels
         .iter()
         .map(|c| json!({"name": c.name, "number": c.number, "folder": c.folder}))
         .collect();
-    let request = json!({"id": id, "kind": "virtual-channels", "channels": list});
+    let request =
+        json!({"id": id, "kind": "virtual-channels", "channels": list, "refresh": refresh});
     let dir = state.join("requests");
     fs::create_dir_all(&dir)?;
     // Written under a temporary name first; the path unit only sees *.json.
@@ -72,13 +77,14 @@ mod tests {
             number: 5,
             folder: "film".into(),
         }];
-        let id = submit_channels(&dir, &channels).unwrap();
+        let id = submit_channels(&dir, &channels, true).unwrap();
         assert!(valid_id(&id));
         let request: Value = serde_json::from_str(
             &fs::read_to_string(dir.join("requests").join(format!("{id}.json"))).unwrap(),
         )
         .unwrap();
         assert_eq!(request["kind"], "virtual-channels");
+        assert_eq!(request["refresh"], true);
         assert_eq!(request["channels"][0]["name"], "Dede \"Film\"");
         assert_eq!(outcome(&dir, &id), Outcome::Pending);
         fs::create_dir_all(dir.join("results")).unwrap();
