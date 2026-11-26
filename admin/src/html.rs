@@ -221,7 +221,7 @@ pub fn channel(
     let mut rows = String::new();
     for film in films {
         rows.push_str(&format!(
-            r#"<div class="row"><span>{name}</span><span class="size">{mb} MB</span>{delete}</div>"#,
+            r#"<div class="row film"><span>{name}</span><span class="size">{mb} MB</span>{delete}</div>"#,
             name = escape(&film.name),
             mb = film.bytes.div_ceil(1024 * 1024),
             delete = post_button(&format!("{base}/films/delete"), csrf, &[("film", &film.name)], t(lang, Text::Delete), "link"),

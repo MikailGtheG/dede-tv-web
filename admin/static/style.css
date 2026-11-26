@@ -27,3 +27,8 @@ button.danger{background:#5a2a24;color:#fbe3dc}
 input[type=file]{padding:18px;background:var(--panel)}
 label.choice{display:flex;align-items:center;gap:14px;font-weight:600;padding:16px 18px;margin:10px 0;border-radius:14px;background:var(--panel)}
 label.choice input{width:28px;height:28px}
+.row.film{flex-wrap:wrap;row-gap:8px}
+.row.film>span:first-child{flex-basis:100%;overflow-wrap:break-word}
+.row.film .size{margin-right:auto}
+.row form{flex-shrink:0}
+.size{white-space:nowrap}
