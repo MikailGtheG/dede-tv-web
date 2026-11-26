@@ -119,6 +119,23 @@ pub enum Text {
     IptvM3u,
     IptvEpg,
     IptvInvalid,
+    RemoteTitle,
+    RemoteIntro,
+    RemoteHome,
+    RemoteAway,
+    WgDevices,
+    WgNone,
+    WgAddTitle,
+    WgName,
+    WgEndpoint,
+    WgRouterHint,
+    WgAdd,
+    WgRemove,
+    WgInvalid,
+    WgPeerTitle,
+    WgPeerHint,
+    WgPeerDone,
+    WgPeerReady,
 }
 
 pub fn t(lang: Lang, text: Text) -> &'static str {
@@ -389,6 +406,74 @@ pub fn t(lang: Lang, text: Text) -> &'static str {
         (Lang::De, IptvInvalid) => "Bitte eine Adresse eingeben, die mit http:// oder https:// beginnt, ohne Leerzeichen.",
         (Lang::Tr, IptvInvalid) => "Lütfen http:// veya https:// ile başlayan, boşluk içermeyen bir adres girin.",
         (Lang::En, IptvInvalid) => "Please enter an address starting with http:// or https://, without spaces.",
+
+        (Lang::De, RemoteTitle) => "Fernzugriff",
+        (Lang::Tr, RemoteTitle) => "Uzaktan erişim",
+        (Lang::En, RemoteTitle) => "Remote access",
+
+        (Lang::De, RemoteIntro) => "Im Heimnetz ist diese Verwaltung direkt erreichbar. Von unterwegs geht es über WireGuard: Jedes Handy oder jeder Laptop bekommt einen eigenen Zugang, den Sie jederzeit wieder entfernen können.",
+        (Lang::Tr, RemoteIntro) => "Bu yönetim paneline ev ağından doğrudan ulaşılır. Dışarıdan WireGuard ile bağlanılır: Her telefon veya dizüstü bilgisayar kendi erişimini alır, bu erişimi istediğiniz zaman kaldırabilirsiniz.",
+        (Lang::En, RemoteIntro) => "At home this console is reachable directly. From outside it works over WireGuard: every phone or laptop gets its own access, which you can remove at any time.",
+
+        (Lang::De, RemoteHome) => "Im Heimnetz:",
+        (Lang::Tr, RemoteHome) => "Ev ağında:",
+        (Lang::En, RemoteHome) => "At home:",
+
+        (Lang::De, RemoteAway) => "Unterwegs über WireGuard:",
+        (Lang::Tr, RemoteAway) => "Dışarıdan WireGuard ile:",
+        (Lang::En, RemoteAway) => "Away via WireGuard:",
+
+        (Lang::De, WgDevices) => "Geräte mit Zugang",
+        (Lang::Tr, WgDevices) => "Erişimi olan cihazlar",
+        (Lang::En, WgDevices) => "Devices with access",
+
+        (Lang::De, WgNone) => "Noch kein Gerät eingerichtet.",
+        (Lang::Tr, WgNone) => "Henüz cihaz eklenmedi.",
+        (Lang::En, WgNone) => "No device set up yet.",
+
+        (Lang::De, WgAddTitle) => "Neues Gerät hinzufügen",
+        (Lang::Tr, WgAddTitle) => "Yeni cihaz ekle",
+        (Lang::En, WgAddTitle) => "Add a device",
+
+        (Lang::De, WgName) => "Name des Geräts, z. B. Handy Mikail",
+        (Lang::Tr, WgName) => "Cihazın adı, örn. Mikail'in telefonu",
+        (Lang::En, WgName) => "Device name, e.g. Mikail's phone",
+
+        (Lang::De, WgEndpoint) => "Adresse Ihres Internetanschlusses (DynDNS-Name oder feste IP, auf Wunsch mit :Port)",
+        (Lang::Tr, WgEndpoint) => "İnternet bağlantınızın adresi (DynDNS adı veya sabit IP, isterseniz :port ile)",
+        (Lang::En, WgEndpoint) => "Address of your internet connection (DynDNS name or fixed IP, optionally with :port)",
+
+        (Lang::De, WgRouterHint) => "Am Router muss der UDP-Port 51820 an diesen Fernseher weitergeleitet sein.",
+        (Lang::Tr, WgRouterHint) => "Modemde UDP port 51820 bu televizyona yönlendirilmiş olmalıdır.",
+        (Lang::En, WgRouterHint) => "Your router must forward UDP port 51820 to this TV.",
+
+        (Lang::De, WgAdd) => "Zugang erstellen",
+        (Lang::Tr, WgAdd) => "Erişim oluştur",
+        (Lang::En, WgAdd) => "Create access",
+
+        (Lang::De, WgRemove) => "Entfernen",
+        (Lang::Tr, WgRemove) => "Kaldır",
+        (Lang::En, WgRemove) => "Remove",
+
+        (Lang::De, WgInvalid) => "Bitte einen Namen (bis 32 Zeichen, ohne Sonderzeichen) und eine gültige Adresse eingeben.",
+        (Lang::Tr, WgInvalid) => "Lütfen bir ad (en fazla 32 karakter, özel karakter olmadan) ve geçerli bir adres girin.",
+        (Lang::En, WgInvalid) => "Please enter a name (up to 32 characters, no special characters) and a valid address.",
+
+        (Lang::De, WgPeerTitle) => "Zugang für das neue Gerät",
+        (Lang::Tr, WgPeerTitle) => "Yeni cihazın erişimi",
+        (Lang::En, WgPeerTitle) => "Access for the new device",
+
+        (Lang::De, WgPeerHint) => "In der WireGuard-App „Tunnel hinzufügen“ und dann „QR-Code scannen“ wählen. Dieser Zugang wird nur jetzt angezeigt.",
+        (Lang::Tr, WgPeerHint) => "WireGuard uygulamasında „Tünel ekle“ ve ardından „QR kodu tara“ seçin. Bu erişim yalnızca şimdi gösterilir.",
+        (Lang::En, WgPeerHint) => "In the WireGuard app choose “Add tunnel”, then “Scan QR code”. This access is shown only now.",
+
+        (Lang::De, WgPeerDone) => "Fertig, Zugang ausblenden",
+        (Lang::Tr, WgPeerDone) => "Tamam, erişimi gizle",
+        (Lang::En, WgPeerDone) => "Done, hide the access",
+
+        (Lang::De, WgPeerReady) => "Der Zugang ist eingerichtet.",
+        (Lang::Tr, WgPeerReady) => "Erişim oluşturuldu.",
+        (Lang::En, WgPeerReady) => "The access is set up.",
     }
 }
 

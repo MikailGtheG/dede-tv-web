@@ -6,3 +6,4 @@ pub mod channels;
 pub mod html;
 pub mod i18n;
 pub mod media;
+pub mod remote;

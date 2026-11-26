@@ -32,3 +32,5 @@ label.choice input{width:28px;height:28px}
 .row.film .size{margin-right:auto}
 .row form{flex-shrink:0}
 .size{white-space:nowrap}
+.qr{display:block;width:100%;max-width:320px;margin:20px auto;border-radius:12px}
+pre.config{white-space:pre-wrap;word-break:break-all;font-size:14px;line-height:1.4;padding:14px 16px;border-radius:12px;background:var(--panel);color:var(--text)}
