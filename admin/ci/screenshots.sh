@@ -7,6 +7,7 @@ work="$(mktemp -d)"
 mkdir -p "$work/state" "$work/run" "$work/media/dede-film" "$work/media/cocuk" "$work/html"
 printf '[Dede Film]\nnumber = 5\nfolder = dede-film\n\n[Çocuk Kanalı]\nnumber = 8\nfolder = cocuk\n' > "$work/vc.conf"
 printf 'WG_ENDPOINT=haus.example.org:51820\nWG_DEVICE=10.77.0.2 key= Handy Mikail\nWG_DEVICE=10.77.0.3 key= Laptop\n' > "$work/remote.conf"
+printf 'TS_STATE=Running\nTS_ADDRESS=100.101.102.103\n' > "$work/tailscale.conf"
 printf 'M3U_URL=https://iptv.example.com/get.php?token=geheim\n' > "$work/iptv.conf"
 truncate -s 1450M "$work/media/dede-film/Die Feuerzangenbowle (1944).mp4"
 truncate -s 980M "$work/media/dede-film/Emil und die Detektive.mkv"
@@ -14,7 +15,7 @@ truncate -s 1210M "$work/media/dede-film/Hababam Sınıfı.mp4"
 port=18099
 export DEDE_ADMIN_LISTEN="127.0.0.1:$port" DEDE_ADMIN_STATE="$work/state" DEDE_ADMIN_RUNTIME="$work/run" \
   DEDE_UI_CONFIG="$work/ui.conf" DEDE_CHANNELS_CONFIG="$work/vc.conf" DEDE_MEDIA_ROOT="$work/media" \
-  DEDE_IPTV_CONFIG="$work/iptv.conf" DEDE_REMOTE_CONFIG="$work/remote.conf"
+  DEDE_IPTV_CONFIG="$work/iptv.conf" DEDE_REMOTE_CONFIG="$work/remote.conf" DEDE_TS_CONFIG="$work/tailscale.conf"
 "$here/target/release/dede-tv-admin" 2>/dev/null & pid=$!
 trap 'kill $pid 2>/dev/null; rm -rf "$work"' EXIT
 url="http://127.0.0.1:$port"
@@ -51,12 +52,16 @@ mkdir -p "$work/state/results"; echo '{"ok":true}' > "$work/state/results/$id.js
 shot applied "${loc#$url}" 430 700
 shot iptv /iptv 430 1100
 shot language /language 430 900
-shot remote /remote 430 1500
+shot remote /remote 430 1900
 loc=$(curl -fs -b "$jar" -H "Origin: $url" --data "csrf=$csrf&name=Tablet&endpoint=haus.example.org" -o /dev/null -w '%{redirect_url}' "$url/remote/add")
 id=$(echo "$loc" | grep -o '/apply/[0-9a-f]*' | cut -d/ -f3)
 peer='[Interface]\nPrivateKey = BEISPIELbeispielBEISPIELbeispielBEISPIEL0=\nAddress = 10.77.0.4/32\n\n[Peer]\nPublicKey = SERVERserverSERVERserverSERVERserverSERVE0=\nEndpoint = haus.example.org:51820\nAllowedIPs = 10.77.0.1/32\nPersistentKeepalive = 25\n'
 echo "{\"ok\":true,\"peer\":\"$peer\"}" > "$work/state/results/$id.json"
 shot remote-device "${loc#$url}" 430 1500
+loc=$(curl -fs -b "$jar" -H "Origin: $url" --data "csrf=$csrf" -o /dev/null -w '%{redirect_url}' "$url/remote/tailscale/login")
+id=$(echo "$loc" | grep -o '/apply/[0-9a-f]*' | cut -d/ -f3)
+echo '{"ok":true,"login":"https://login.tailscale.com/a/1a2b3c4d5e6f"}' > "$work/state/results/$id.json"
+shot tailscale-login "${loc#$url}" 430 1100
 printf 'LANGUAGE=tr\n' > "$work/ui.conf"
 lang=tr-TR
 shot home-tr / 430 800

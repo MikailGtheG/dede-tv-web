@@ -84,6 +84,11 @@ pub fn submit_wireguard_remove(state: &Path, address: &str) -> std::io::Result<S
     )
 }
 
+/// `tailscale-login`, `tailscale-status` or `tailscale-logout`.
+pub fn submit_tailscale(state: &Path, kind: &'static str) -> std::io::Result<String> {
+    queue(state, json!({ "kind": kind }))
+}
+
 fn queue(state: &Path, mut request: Value) -> std::io::Result<String> {
     let id = random_token()[..32].to_string();
     request["id"] = json!(id);
@@ -96,17 +101,27 @@ fn queue(state: &Path, mut request: Value) -> std::io::Result<String> {
     Ok(id)
 }
 
-/// Configuration of a new WireGuard device, kept until it is dismissed.
-pub fn peer_config(state: &Path, id: &str) -> Option<String> {
+fn answer_field(state: &Path, id: &str, name: &str) -> Option<String> {
     if !valid_id(id) {
         return None;
     }
     let text = fs::read_to_string(state.join("results").join(format!("{id}.json"))).ok()?;
     let value: Value = serde_json::from_str(&text).ok()?;
-    value["peer"]
-        .as_str()
-        .filter(|p| p.starts_with("[Interface]") && p.len() <= 2048)
-        .map(String::from)
+    value[name].as_str().map(String::from)
+}
+
+/// Configuration of a new WireGuard device, kept until it is dismissed.
+pub fn peer_config(state: &Path, id: &str) -> Option<String> {
+    answer_field(state, id, "peer").filter(|p| p.starts_with("[Interface]") && p.len() <= 2048)
+}
+
+/// Tailscale sign-in link for the owner's phone.
+pub fn login_link(state: &Path, id: &str) -> Option<String> {
+    answer_field(state, id, "login").filter(|l| {
+        l.starts_with("https://")
+            && l.len() <= 512
+            && !l.chars().any(|c| c.is_whitespace() || c.is_control())
+    })
 }
 
 /// Drop the device's private key from the answer once it was taken over.

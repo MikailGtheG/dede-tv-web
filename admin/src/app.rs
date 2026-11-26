@@ -26,6 +26,7 @@ pub struct Config {
     pub channels_config: PathBuf,
     pub iptv_config: PathBuf,
     pub remote_config: PathBuf,
+    pub tailscale_config: PathBuf,
     pub media_root: PathBuf,
 }
 
@@ -293,7 +294,11 @@ impl App {
                     .host
                     .as_deref()
                     .filter(|h| !h.starts_with("10.77.0.1:") && *h != "10.77.0.1");
-                Response::html(200, html::remote(lang, csrf, home, &state, notice))
+                let tailscale = remote::read_tailscale(&self.config.tailscale_config);
+                Response::html(
+                    200,
+                    html::remote(lang, csrf, home, &state, &tailscale, notice),
+                )
             }
             ["apply", id] => {
                 let back = query_value(&request.query, "back")
@@ -307,6 +312,9 @@ impl App {
                 let state = match apply::outcome(&self.config.state_dir, id) {
                     apply::Outcome::Pending => html::ApplyState::Pending,
                     apply::Outcome::Done => {
+                        if let Some(link) = apply::login_link(&self.config.state_dir, id) {
+                            return Response::html(200, html::tailscale_login(lang, csrf, &link));
+                        }
                         if let Some(peer) = apply::peer_config(&self.config.state_dir, id) {
                             return Response::html(
                                 200,
@@ -386,6 +394,7 @@ impl App {
             let (name, endpoint) = (field(form, "name").trim(), field(form, "endpoint").trim());
             if !remote::valid_name(name) || !remote::valid_endpoint(endpoint) {
                 let state = remote::read(&self.config.remote_config);
+                let tailscale = remote::read_tailscale(&self.config.tailscale_config);
                 return Response::html(
                     200,
                     html::remote(
@@ -393,6 +402,7 @@ impl App {
                         csrf,
                         None,
                         &state,
+                        &tailscale,
                         Some(Notice::Error(Text::WgInvalid)),
                     ),
                 );
@@ -402,6 +412,20 @@ impl App {
                 "/remote",
                 request,
                 "WireGuard device",
+            );
+        }
+        if let ["remote", "tailscale", action] = parts.as_slice() {
+            let kind = match *action {
+                "login" => "tailscale-login",
+                "status" => "tailscale-status",
+                "logout" => "tailscale-logout",
+                _ => return Response::html(404, html::rejected(lang)),
+            };
+            return self.queued(
+                apply::submit_tailscale(&self.config.state_dir, kind),
+                "/remote",
+                request,
+                kind,
             );
         }
         if parts.as_slice() == ["remote", "remove"] {
@@ -758,6 +782,7 @@ mod tests {
             channels_config: dir.join("virtual-channels.conf"),
             iptv_config: dir.join("iptv.conf"),
             remote_config: dir.join("remote.conf"),
+            tailscale_config: dir.join("tailscale.conf"),
             media_root: dir.join("media"),
         });
         Fixture { app, dir }
@@ -1350,6 +1375,59 @@ mod tests {
         let request = pending_request(&f);
         assert_eq!(request["kind"], "wireguard-remove");
         assert_eq!(request["address"], "10.77.0.2");
+    }
+
+    #[test]
+    fn tailscale_sign_in_shows_the_link_and_the_address() {
+        let mut f = fixture();
+        let (cookie, csrf) = signed_in(&mut f);
+        let page = text(&get(&mut f.app, "/remote", Some(&cookie)));
+        assert!(page.contains("Nicht verbunden") && page.contains("/remote/tailscale/login"));
+        let reply = post(
+            &mut f.app,
+            "/remote/tailscale/login",
+            &cookie,
+            &format!("csrf={csrf}"),
+        );
+        let location = header(&reply, "Location").unwrap().to_string();
+        let request = pending_request(&f);
+        assert_eq!(request["kind"], "tailscale-login");
+        let id = request["id"].as_str().unwrap();
+        let results = f.dir.join("state/results");
+        fs::create_dir_all(&results).unwrap();
+        let link = "https://login.tailscale.com/a/1a2b3c4d";
+        fs::write(
+            results.join(format!("{id}.json")),
+            serde_json::json!({"id": id, "ok": true, "login": link}).to_string(),
+        )
+        .unwrap();
+        let shown = text(&get(&mut f.app, &location, Some(&cookie)));
+        assert!(shown.contains(&format!("href=\"{link}\"")) && shown.contains("<svg class=\"qr\""));
+
+        fs::write(
+            f.dir.join("tailscale.conf"),
+            "TS_STATE=Running\nTS_ADDRESS=100.101.102.103\n",
+        )
+        .unwrap();
+        let page = text(&get(&mut f.app, "/remote", Some(&cookie)));
+        assert!(
+            page.contains("http://100.101.102.103:8080")
+                && page.contains("/remote/tailscale/logout")
+        );
+        post(
+            &mut f.app,
+            "/remote/tailscale/logout",
+            &cookie,
+            &format!("csrf={csrf}"),
+        );
+        assert_eq!(pending_request(&f)["kind"], "tailscale-logout");
+        let unknown = post(
+            &mut f.app,
+            "/remote/tailscale/reset",
+            &cookie,
+            &format!("csrf={csrf}"),
+        );
+        assert_eq!(unknown.status, 404);
     }
 
     #[test]

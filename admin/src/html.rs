@@ -385,6 +385,7 @@ pub fn remote(
     csrf: &str,
     home: Option<&str>,
     state: &crate::remote::State,
+    tailscale: &crate::remote::Tailscale,
     message: Option<Notice>,
 ) -> String {
     let mut rows = String::new();
@@ -414,11 +415,41 @@ pub fn remote(
             )
         })
         .unwrap_or_default();
+    let ts_button = |action: &str, text: Text, class: &str| {
+        post_button(
+            &format!("/remote/tailscale/{action}"),
+            csrf,
+            &[],
+            t(lang, text),
+            class,
+        )
+    };
+    let ts_state = match (&tailscale.address, tailscale.signed_in) {
+        (Some(address), true) => format!(
+            "<p>{} <strong>http://{}:8080</strong></p>",
+            escape(t(lang, Text::TsOn)),
+            escape(address)
+        ),
+        _ if tailscale.waiting_for_login => format!("<p>{}</p>", escape(t(lang, Text::TsWaiting))),
+        _ => format!("<p>{}</p>", escape(t(lang, Text::TsOff))),
+    };
+    let ts_actions = if tailscale.signed_in {
+        ts_button("status", Text::TsCheck, "") + &ts_button("logout", Text::TsDisconnect, "danger")
+    } else if tailscale.waiting_for_login {
+        ts_button("status", Text::TsCheck, "") + &ts_button("login", Text::TsConnect, "")
+    } else {
+        ts_button("login", Text::TsConnect, "")
+    };
     let body = format!(
         r#"<p><a href="/">← {back}</a></p>
 <h1>{title}</h1>
 {notice}<p>{intro}</p>
-{home}<p>{away} <strong>http://10.77.0.1:8080</strong></p>
+{home}
+<h2>Tailscale</h2>
+<p>{ts_intro}</p>
+{ts_state}{ts_actions}
+<h2>WireGuard</h2>
+<p>{away} <strong>http://10.77.0.1:8080</strong></p>
 <h2>{devices}</h2>
 <div class="rows">{rows}</div>
 <h2>{add_title}</h2>
@@ -435,6 +466,7 @@ pub fn remote(
         title = escape(t(lang, Text::RemoteTitle)),
         notice = notice(lang, message),
         intro = escape(t(lang, Text::RemoteIntro)),
+        ts_intro = escape(t(lang, Text::TsIntro)),
         away = escape(t(lang, Text::RemoteAway)),
         devices = escape(t(lang, Text::WgDevices)),
         add_title = escape(t(lang, Text::WgAddTitle)),
@@ -446,6 +478,24 @@ pub fn remote(
         add = escape(t(lang, Text::WgAdd)),
     );
     page(lang, Text::RemoteTitle, &logout_form(lang, csrf), &body)
+}
+
+/// Sign-in link for Tailscale, as link and QR code for the phone.
+pub fn tailscale_login(lang: Lang, csrf: &str, link: &str) -> String {
+    let body = format!(
+        r#"<h1>{title}</h1>
+<p class="msg ok" role="status">{hint}</p>
+<p><a class="button" href="{link}" target="_blank" rel="noopener noreferrer">{open}</a></p>
+{qr}
+<p><a href="/remote">← {back}</a></p>"#,
+        title = escape(t(lang, Text::TsLoginTitle)),
+        hint = escape(t(lang, Text::TsLoginHint)),
+        link = escape(link),
+        open = escape(t(lang, Text::TsOpen)),
+        qr = crate::remote::qr_svg(link).unwrap_or_default(),
+        back = escape(t(lang, Text::RemoteTitle)),
+    );
+    page(lang, Text::TsLoginTitle, &logout_form(lang, csrf), &body)
 }
 
 /// The new device's configuration, once, as QR code and as text.
