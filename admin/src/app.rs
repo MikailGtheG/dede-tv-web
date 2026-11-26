@@ -288,6 +288,7 @@ impl App {
                 let host = apply::iptv_host(&self.config.iptv_config);
                 Response::html(200, html::iptv(lang, csrf, host.as_deref(), None))
             }
+            ["system"] => Response::html(200, html::system(lang, csrf, notice)),
             ["remote"] => {
                 let state = remote::read(&self.config.remote_config);
                 let home = request
@@ -312,6 +313,9 @@ impl App {
                 let state = match apply::outcome(&self.config.state_dir, id) {
                     apply::Outcome::Pending => html::ApplyState::Pending,
                     apply::Outcome::Done => {
+                        if let Some(report) = apply::report(&self.config.state_dir, id) {
+                            return Response::html(200, html::diagnostics(lang, csrf, &report));
+                        }
                         if let Some(link) = apply::login_link(&self.config.state_dir, id) {
                             return Response::html(200, html::tailscale_login(lang, csrf, &link));
                         }
@@ -412,6 +416,20 @@ impl App {
                 "/remote",
                 request,
                 "WireGuard device",
+            );
+        }
+        if let ["system", action] = parts.as_slice() {
+            let kind = match *action {
+                "diagnostics" => "diagnostics",
+                "restart-tv" => "restart-tv",
+                "reboot" => "reboot",
+                _ => return Response::html(404, html::rejected(lang)),
+            };
+            return self.queued(
+                apply::submit_maintenance(&self.config.state_dir, kind),
+                "/system",
+                request,
+                kind,
             );
         }
         if let ["remote", "tailscale", action] = parts.as_slice() {
@@ -1427,6 +1445,60 @@ mod tests {
             &cookie,
             &format!("csrf={csrf}"),
         );
+        assert_eq!(unknown.status, 404);
+    }
+
+    #[test]
+    fn system_page_requests_diagnostics_and_restarts() {
+        let mut f = fixture();
+        let (cookie, csrf) = signed_in(&mut f);
+        assert!(text(&get(&mut f.app, "/", Some(&cookie))).contains("href=\"/system\""));
+        let page = text(&get(&mut f.app, "/system", Some(&cookie)));
+        assert!(page.contains("/system/restart-tv") && page.contains("/system/reboot"));
+        for kind in ["restart-tv", "reboot"] {
+            post(
+                &mut f.app,
+                &format!("/system/{kind}"),
+                &cookie,
+                &format!("csrf={csrf}"),
+            );
+            assert_eq!(pending_request(&f)["kind"], kind);
+        }
+        let reply = post(
+            &mut f.app,
+            "/system/diagnostics",
+            &cookie,
+            &format!("csrf={csrf}"),
+        );
+        let location = header(&reply, "Location").unwrap().to_string();
+        assert!(location.ends_with("?back=/system"));
+        let request = pending_request(&f);
+        let id = request["id"].as_str().unwrap();
+        let results = f.dir.join("state/results");
+        fs::create_dir_all(&results).unwrap();
+        let report = serde_json::json!({"units": {"tv": "active", "guard": "failed",
+            "console": "active", "tailscale": "inactive", "wireguard": "<b>"},
+            "failed": ["dede-tv-guard.service"], "uptime_s": 7384,
+            "media_free_mb": 20480, "media_total_mb": 51200, "system": "Debian <13>"});
+        fs::write(
+            results.join(format!("{id}.json")),
+            serde_json::json!({"id": id, "ok": true, "report": report}).to_string(),
+        )
+        .unwrap();
+        let shown = text(&get(&mut f.app, &location, Some(&cookie)));
+        for expected in [
+            "Fernsehbild",
+            "läuft",
+            "Fehler",
+            "unbekannt",
+            "2 Std. 3 Min.",
+            "20.0 GB frei von 50.0 GB",
+            "Debian &lt;13&gt;",
+            "dede-tv-guard.service",
+        ] {
+            assert!(shown.contains(expected), "{expected}");
+        }
+        let unknown = post(&mut f.app, "/system/wipe", &cookie, &format!("csrf={csrf}"));
         assert_eq!(unknown.status, 404);
     }
 

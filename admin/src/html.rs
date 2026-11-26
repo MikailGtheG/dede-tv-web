@@ -523,6 +523,121 @@ pub fn wireguard_peer(lang: Lang, csrf: &str, id: &str, config: &str) -> String 
     page(lang, Text::WgPeerTitle, &logout_form(lang, csrf), &body)
 }
 
+pub fn system(lang: Lang, csrf: &str, message: Option<Notice>) -> String {
+    let body = format!(
+        r#"<p><a href="/">← {back}</a></p>
+<h1>{title}</h1>
+{notice}<p>{intro}</p>
+<h2>{diag_title}</h2>
+<p>{diag_hint}</p>
+{diag}
+<h2>{restart}</h2>
+<p>{restart_hint}</p>
+{restart_button}
+<h2>{reboot}</h2>
+<p>{reboot_hint}</p>
+{reboot_button}"#,
+        back = escape(t(lang, Text::Back)),
+        title = escape(t(lang, Text::SystemTitle)),
+        notice = notice(lang, message),
+        intro = escape(t(lang, Text::SystemIntro)),
+        diag_title = escape(t(lang, Text::DiagTitle)),
+        diag_hint = escape(t(lang, Text::DiagHint)),
+        diag = post_button("/system/diagnostics", csrf, &[], t(lang, Text::DiagRun), ""),
+        restart = escape(t(lang, Text::RestartTv)),
+        restart_hint = escape(t(lang, Text::RestartTvHint)),
+        restart_button = post_button(
+            "/system/restart-tv",
+            csrf,
+            &[],
+            t(lang, Text::RestartTv),
+            ""
+        ),
+        reboot = escape(t(lang, Text::Reboot)),
+        reboot_hint = escape(t(lang, Text::RebootHint)),
+        reboot_button = post_button("/system/reboot", csrf, &[], t(lang, Text::Reboot), "danger"),
+    );
+    page(lang, Text::SystemTitle, &logout_form(lang, csrf), &body)
+}
+
+/// The root helper's report; only known fields are shown.
+pub fn diagnostics(lang: Lang, csrf: &str, report: &serde_json::Value) -> String {
+    let mut rows = String::new();
+    let mut row = |label: &str, value: String| {
+        rows.push_str(&format!(
+            r#"<div class="row film"><span>{}</span><span class="size">{}</span></div>"#,
+            escape(label),
+            escape(&value)
+        ));
+    };
+    for (key, label) in [
+        ("tv", t(lang, Text::UnitTv)),
+        ("guard", t(lang, Text::UnitGuard)),
+        ("console", t(lang, Text::UnitConsole)),
+        ("tailscale", "Tailscale"),
+        ("wireguard", "WireGuard"),
+    ] {
+        let state = match report["units"][key].as_str() {
+            Some("active") => Text::StateActive,
+            Some("inactive") => Text::StateInactive,
+            Some("failed") => Text::StateFailed,
+            _ => Text::StateOther,
+        };
+        row(label, t(lang, state).to_string());
+    }
+    if let Some(seconds) = report["uptime_s"].as_u64() {
+        row(
+            t(lang, Text::DiagUptime),
+            format!(
+                "{} {} {} {}",
+                seconds / 3600,
+                t(lang, Text::DiagHours),
+                seconds % 3600 / 60,
+                t(lang, Text::DiagMinutes)
+            ),
+        );
+    }
+    if let (Some(free), Some(total)) = (
+        report["media_free_mb"].as_u64(),
+        report["media_total_mb"].as_u64(),
+    ) {
+        row(
+            t(lang, Text::DiagMedia),
+            format!(
+                "{:.1} GB {} {:.1} GB",
+                free as f64 / 1024.0,
+                t(lang, Text::DiagFreeOf),
+                total as f64 / 1024.0
+            ),
+        );
+    }
+    if let Some(system) = report["system"].as_str() {
+        row(t(lang, Text::DiagSystem), system.chars().take(80).collect());
+    }
+    let failed: Vec<&str> = report["failed"]
+        .as_array()
+        .map(|list| list.iter().filter_map(|u| u.as_str()).take(20).collect())
+        .unwrap_or_default();
+    row(
+        t(lang, Text::DiagFailed),
+        if failed.is_empty() {
+            t(lang, Text::DiagNone).to_string()
+        } else {
+            failed.join(", ")
+        },
+    );
+    let body = format!(
+        r#"<p><a href="/system">← {back}</a></p>
+<h1>{title}</h1>
+<p class="msg ok" role="status">{done}</p>
+<div class="rows">{rows}</div>"#,
+        back = escape(t(lang, Text::SystemTitle)),
+        title = escape(t(lang, Text::DiagTitle)),
+        done = escape(t(lang, Text::DiagDone)),
+    );
+    page(lang, Text::DiagTitle, &logout_form(lang, csrf), &body)
+}
+
 pub fn home(lang: Lang, csrf: &str, message: Option<Notice>) -> String {
     let logout = format!(
         r#"<form method="post" action="/logout">{}<button class="link" type="submit">{}</button></form>"#,
@@ -530,14 +645,15 @@ pub fn home(lang: Lang, csrf: &str, message: Option<Notice>) -> String {
         escape(t(lang, Text::LogOut))
     );
     let body = format!(
-        "<h1>{}</h1>\n{}<p>{}</p>\n<nav class=\"rows\"><a class=\"row\" href=\"/channels\">{}</a><a class=\"row\" href=\"/iptv\">{}</a><a class=\"row\" href=\"/remote\">{}</a><a class=\"row\" href=\"/language\">{}</a></nav>",
+        "<h1>{}</h1>\n{}<p>{}</p>\n<nav class=\"rows\"><a class=\"row\" href=\"/channels\">{}</a><a class=\"row\" href=\"/iptv\">{}</a><a class=\"row\" href=\"/remote\">{}</a><a class=\"row\" href=\"/language\">{}</a><a class=\"row\" href=\"/system\">{}</a></nav>",
         escape(t(lang, Text::HomeTitle)),
         notice(lang, message),
         escape(t(lang, Text::HomeIntro)),
         escape(t(lang, Text::ChannelsTitle)),
         escape(t(lang, Text::IptvTitle)),
         escape(t(lang, Text::RemoteTitle)),
-        escape(t(lang, Text::LanguageTitle))
+        escape(t(lang, Text::LanguageTitle)),
+        escape(t(lang, Text::SystemTitle))
     );
     page(lang, Text::HomeTitle, &logout, &body)
 }

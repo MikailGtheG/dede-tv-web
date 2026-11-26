@@ -62,6 +62,11 @@ loc=$(curl -fs -b "$jar" -H "Origin: $url" --data "csrf=$csrf" -o /dev/null -w '
 id=$(echo "$loc" | grep -o '/apply/[0-9a-f]*' | cut -d/ -f3)
 echo '{"ok":true,"login":"https://login.tailscale.com/a/1a2b3c4d5e6f"}' > "$work/state/results/$id.json"
 shot tailscale-login "${loc#$url}" 430 1100
+shot system /system 430 1300
+loc=$(curl -fs -b "$jar" -H "Origin: $url" --data "csrf=$csrf" -o /dev/null -w '%{redirect_url}' "$url/system/diagnostics")
+id=$(echo "$loc" | grep -o '/apply/[0-9a-f]*' | cut -d/ -f3)
+echo '{"ok":true,"report":{"units":{"tv":"active","guard":"active","console":"active","tailscale":"active","wireguard":"inactive"},"failed":[],"uptime_s":273840,"media_free_mb":118272,"media_total_mb":235520,"system":"Debian GNU/Linux 13 (trixie)"}}' > "$work/state/results/$id.json"
+shot diagnostics "${loc#$url}" 430 1100
 printf 'LANGUAGE=tr\n' > "$work/ui.conf"
 lang=tr-TR
 shot home-tr / 430 800
