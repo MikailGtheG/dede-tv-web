@@ -118,6 +118,206 @@ pub fn login(lang: Lang, form_token: &str, message: Option<Notice>) -> String {
     page(lang, Text::LoginTitle, "", &body)
 }
 
+fn logout_form(lang: Lang, csrf: &str) -> String {
+    format!(
+        r#"<form method="post" action="/logout">{}<button class="link" type="submit">{}</button></form>"#,
+        hidden("csrf", csrf),
+        escape(t(lang, Text::LogOut))
+    )
+}
+
+fn post_button(
+    action: &str,
+    csrf: &str,
+    extra: &[(&str, &str)],
+    label: &str,
+    class: &str,
+) -> String {
+    let fields: String = extra.iter().map(|(k, v)| hidden(k, v)).collect();
+    format!(
+        r#"<form method="post" action="{}">{}{}<button class="{}" type="submit">{}</button></form>"#,
+        escape(action),
+        hidden("csrf", csrf),
+        fields,
+        class,
+        escape(label)
+    )
+}
+
+pub fn channels(
+    lang: Lang,
+    csrf: &str,
+    list: &[crate::channels::Channel],
+    message: Option<Notice>,
+) -> String {
+    let mut rows = String::new();
+    for c in list {
+        rows.push_str(&format!(
+            r#"<a class="row" href="/channels/{n}"><span class="num">{n:02}</span><span>{name}</span></a>"#,
+            n = c.number,
+            name = escape(&c.name)
+        ));
+    }
+    if rows.is_empty() {
+        rows = format!("<p>{}</p>", escape(t(lang, Text::NoChannels)));
+    }
+    let body = format!(
+        r#"<p><a href="/">← {back}</a></p>
+<h1>{title}</h1>
+{notice}<p>{intro}</p>
+<nav class="rows">{rows}</nav>
+<a class="button" href="/channels/new">+ {new}</a>"#,
+        back = escape(t(lang, Text::Back)),
+        title = escape(t(lang, Text::ChannelsTitle)),
+        notice = notice(lang, message),
+        intro = escape(t(lang, Text::ChannelsIntro)),
+        new = escape(t(lang, Text::NewChannel)),
+    );
+    page(lang, Text::ChannelsTitle, &logout_form(lang, csrf), &body)
+}
+
+pub fn new_channel(
+    lang: Lang,
+    csrf: &str,
+    name: &str,
+    number: &str,
+    message: Option<Notice>,
+) -> String {
+    let body = format!(
+        r#"<p><a href="/channels">← {back}</a></p>
+<h1>{title}</h1>
+{notice}
+<form method="post" action="/channels/new">
+{token}
+<label for="name">{name_label}</label>
+<input id="name" name="name" value="{name}" maxlength="60" required autofocus>
+<label for="number">{number_label}</label>
+<input id="number" name="number" value="{number}" inputmode="numeric" maxlength="4" required>
+<p class="hint">{hint}</p>
+<button type="submit">{create}</button>
+</form>"#,
+        back = escape(t(lang, Text::Back)),
+        title = escape(t(lang, Text::NewChannel)),
+        notice = notice(lang, message),
+        token = hidden("csrf", csrf),
+        name_label = escape(t(lang, Text::ChannelName)),
+        name = escape(name),
+        number_label = escape(t(lang, Text::ChannelNumber)),
+        number = escape(number),
+        hint = escape(t(lang, Text::NumberHint)),
+        create = escape(t(lang, Text::Create)),
+    );
+    page(lang, Text::NewChannel, &logout_form(lang, csrf), &body)
+}
+
+pub fn channel(
+    lang: Lang,
+    csrf: &str,
+    channel: &crate::channels::Channel,
+    films: &[crate::media::Film],
+    message: Option<Notice>,
+) -> String {
+    let base = format!("/channels/{}", channel.number);
+    let mut rows = String::new();
+    for film in films {
+        rows.push_str(&format!(
+            r#"<div class="row"><span>{name}</span><span class="size">{mb} MB</span>{delete}</div>"#,
+            name = escape(&film.name),
+            mb = film.bytes.div_ceil(1024 * 1024),
+            delete = post_button(&format!("{base}/films/delete"), csrf, &[("film", &film.name)], t(lang, Text::Delete), "link"),
+        ));
+    }
+    if rows.is_empty() {
+        rows = format!("<p>{}</p>", escape(t(lang, Text::NoFilms)));
+    }
+    let body = format!(
+        r#"<p><a href="/channels">← {back}</a></p>
+<h1><span class="num">{n:02}</span> {name}</h1>
+{notice}
+<h2>{films_title}</h2>
+<div class="rows">{rows}</div>
+<h2>{upload_title}</h2>
+<form method="post" action="{base}/upload" enctype="multipart/form-data">
+{token}
+<input type="file" name="film" accept="video/*,.mkv,.ts" multiple required>
+<p class="hint">{upload_hint}</p>
+<button type="submit">{upload}</button>
+</form>
+<h2>{send_title}</h2>
+<p>{send_hint}</p>
+{send}
+<h2>{delete_title}</h2>
+<p>{delete_hint}</p>
+{delete}"#,
+        back = escape(t(lang, Text::Back)),
+        n = channel.number,
+        name = escape(&channel.name),
+        notice = notice(lang, message),
+        films_title = escape(t(lang, Text::Films)),
+        upload_title = escape(t(lang, Text::UploadFilms)),
+        base = escape(&base),
+        token = hidden("csrf", csrf),
+        upload_hint = escape(t(lang, Text::UploadHint)),
+        upload = escape(t(lang, Text::Upload)),
+        send_title = escape(t(lang, Text::SendToTv)),
+        send_hint = escape(t(lang, Text::SendToTvHint)),
+        send = post_button(
+            "/apply",
+            csrf,
+            &[("back", &base)],
+            t(lang, Text::SendToTv),
+            ""
+        ),
+        delete_title = escape(t(lang, Text::DeleteChannel)),
+        delete_hint = escape(t(lang, Text::DeleteChannelHint)),
+        delete = post_button(
+            &format!("{base}/delete"),
+            csrf,
+            &[],
+            t(lang, Text::DeleteChannel),
+            "danger"
+        ),
+    );
+    page(lang, Text::ChannelsTitle, &logout_form(lang, csrf), &body)
+}
+
+pub enum ApplyState {
+    Pending,
+    Done,
+    Failed(String),
+}
+
+pub fn applying(lang: Lang, csrf: &str, state: ApplyState, back: &str) -> String {
+    let (refresh, content) = match state {
+        ApplyState::Pending => (
+            r#"<meta http-equiv="refresh" content="3">"#,
+            format!("<p>{}</p>", escape(t(lang, Text::ApplyingHint))),
+        ),
+        ApplyState::Done => (
+            "",
+            format!(
+                r#"<p class="msg ok" role="status">{}</p>"#,
+                escape(t(lang, Text::Applied))
+            ),
+        ),
+        ApplyState::Failed(code) => (
+            "",
+            format!(
+                r#"<p class="msg" role="alert">{} {}</p>"#,
+                escape(t(lang, Text::ApplyFailed)),
+                escape(&code)
+            ),
+        ),
+    };
+    let body = format!(
+        r#"{refresh}<h1>{title}</h1>{content}<p><a class="button" href="{back}">{back_label}</a></p>"#,
+        title = escape(t(lang, Text::Applying)),
+        back = escape(back),
+        back_label = escape(t(lang, Text::Back)),
+    );
+    page(lang, Text::Applying, &logout_form(lang, csrf), &body)
+}
+
 pub fn home(lang: Lang, csrf: &str, message: Option<Notice>) -> String {
     let logout = format!(
         r#"<form method="post" action="/logout">{}<button class="link" type="submit">{}</button></form>"#,
@@ -125,10 +325,11 @@ pub fn home(lang: Lang, csrf: &str, message: Option<Notice>) -> String {
         escape(t(lang, Text::LogOut))
     );
     let body = format!(
-        "<h1>{}</h1>\n{}<p>{}</p>",
+        "<h1>{}</h1>\n{}<p>{}</p>\n<nav class=\"rows\"><a class=\"row\" href=\"/channels\">{}</a></nav>",
         escape(t(lang, Text::HomeTitle)),
         notice(lang, message),
-        escape(t(lang, Text::HomeIntro))
+        escape(t(lang, Text::HomeIntro)),
+        escape(t(lang, Text::ChannelsTitle))
     );
     page(lang, Text::HomeTitle, &logout, &body)
 }
