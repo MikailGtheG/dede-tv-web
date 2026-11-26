@@ -115,6 +115,42 @@ pub fn valid_endpoint(endpoint: &str) -> bool {
         && host.bytes().any(|b| b.is_ascii_alphabetic())
 }
 
+/// Tailscale as last seen by the root helper (`/etc/dede-tv/tailscale.conf`).
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Tailscale {
+    pub signed_in: bool,
+    pub waiting_for_login: bool,
+    /// The TV's Tailscale IPv4 address while signed in.
+    pub address: Option<String>,
+}
+
+pub fn read_tailscale(path: &Path) -> Tailscale {
+    let mut tailscale = Tailscale::default();
+    let Ok(text) = fs::read_to_string(path) else {
+        return tailscale;
+    };
+    for line in text.lines() {
+        match line.split_once('=') {
+            Some(("TS_STATE", "Running")) => tailscale.signed_in = true,
+            Some(("TS_STATE", "NeedsLogin" | "NeedsMachineAuth")) => {
+                tailscale.waiting_for_login = true
+            }
+            Some(("TS_ADDRESS", address)) => {
+                tailscale.address = address
+                    .parse::<std::net::Ipv4Addr>()
+                    .ok()
+                    .filter(|ip| ip.octets()[0] == 100 && (64..128).contains(&ip.octets()[1]))
+                    .map(|ip| ip.to_string());
+            }
+            _ => {}
+        }
+    }
+    if !tailscale.signed_in {
+        tailscale.address = None;
+    }
+    tailscale
+}
+
 /// QR code as inline SVG (black modules on white, with a quiet zone).
 pub fn qr_svg(text: &str) -> Option<String> {
     let code = qrcode::QrCode::with_error_correction_level(text, qrcode::EcLevel::M).ok()?;
@@ -201,6 +237,23 @@ mod tests {
         ] {
             assert!(!valid_endpoint(bad), "{bad}");
         }
+    }
+
+    #[test]
+    fn reads_tailscale_state() {
+        let dir = std::env::temp_dir().join(format!("dede-ts-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("tailscale.conf");
+        assert_eq!(read_tailscale(&file), Tailscale::default());
+        fs::write(&file, "TS_STATE=Running\nTS_ADDRESS=100.101.102.103\n").unwrap();
+        let ts = read_tailscale(&file);
+        assert!(ts.signed_in && ts.address.as_deref() == Some("100.101.102.103"));
+        fs::write(&file, "TS_STATE=NeedsLogin\nTS_ADDRESS=100.101.102.103\n").unwrap();
+        let ts = read_tailscale(&file);
+        assert!(ts.waiting_for_login && !ts.signed_in && ts.address.is_none());
+        fs::write(&file, "TS_STATE=Running\nTS_ADDRESS=8.8.8.8\n").unwrap();
+        assert_eq!(read_tailscale(&file).address, None);
+        fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]

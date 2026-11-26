@@ -136,6 +136,16 @@ pub enum Text {
     WgPeerHint,
     WgPeerDone,
     WgPeerReady,
+    TsIntro,
+    TsOff,
+    TsWaiting,
+    TsOn,
+    TsConnect,
+    TsCheck,
+    TsDisconnect,
+    TsLoginTitle,
+    TsLoginHint,
+    TsOpen,
 }
 
 pub fn t(lang: Lang, text: Text) -> &'static str {
@@ -411,9 +421,9 @@ pub fn t(lang: Lang, text: Text) -> &'static str {
         (Lang::Tr, RemoteTitle) => "Uzaktan erişim",
         (Lang::En, RemoteTitle) => "Remote access",
 
-        (Lang::De, RemoteIntro) => "Im Heimnetz ist diese Verwaltung direkt erreichbar. Von unterwegs geht es über WireGuard: Jedes Handy oder jeder Laptop bekommt einen eigenen Zugang, den Sie jederzeit wieder entfernen können.",
-        (Lang::Tr, RemoteIntro) => "Bu yönetim paneline ev ağından doğrudan ulaşılır. Dışarıdan WireGuard ile bağlanılır: Her telefon veya dizüstü bilgisayar kendi erişimini alır, bu erişimi istediğiniz zaman kaldırabilirsiniz.",
-        (Lang::En, RemoteIntro) => "At home this console is reachable directly. From outside it works over WireGuard: every phone or laptop gets its own access, which you can remove at any time.",
+        (Lang::De, RemoteIntro) => "Im Heimnetz ist diese Verwaltung direkt erreichbar. Von unterwegs geht es über Tailscale (am einfachsten) oder über WireGuard, wo jedes Handy und jeder Laptop einen eigenen Zugang bekommt.",
+        (Lang::Tr, RemoteIntro) => "Bu yönetim paneline ev ağından doğrudan ulaşılır. Dışarıdan Tailscale (en kolayı) veya her telefonun ve dizüstü bilgisayarın kendi erişimini aldığı WireGuard ile bağlanılır.",
+        (Lang::En, RemoteIntro) => "At home this console is reachable directly. From outside use Tailscale (easiest) or WireGuard, where every phone and laptop gets its own access.",
 
         (Lang::De, RemoteHome) => "Im Heimnetz:",
         (Lang::Tr, RemoteHome) => "Ev ağında:",
@@ -474,6 +484,46 @@ pub fn t(lang: Lang, text: Text) -> &'static str {
         (Lang::De, WgPeerReady) => "Der Zugang ist eingerichtet.",
         (Lang::Tr, WgPeerReady) => "Erişim oluşturuldu.",
         (Lang::En, WgPeerReady) => "The access is set up.",
+
+        (Lang::De, TsIntro) => "Mit Tailscale erreichen Sie die Verwaltung von überall, ohne Einstellungen am Router. Dafür brauchen Sie ein kostenloses Tailscale-Konto.",
+        (Lang::Tr, TsIntro) => "Tailscale ile yönetim paneline modemde ayar yapmadan her yerden ulaşırsınız. Bunun için ücretsiz bir Tailscale hesabı gerekir.",
+        (Lang::En, TsIntro) => "With Tailscale you reach the console from anywhere without router settings. You need a free Tailscale account.",
+
+        (Lang::De, TsOff) => "Nicht verbunden.",
+        (Lang::Tr, TsOff) => "Bağlı değil.",
+        (Lang::En, TsOff) => "Not connected.",
+
+        (Lang::De, TsWaiting) => "Die Anmeldung ist noch nicht abgeschlossen.",
+        (Lang::Tr, TsWaiting) => "Giriş henüz tamamlanmadı.",
+        (Lang::En, TsWaiting) => "Sign-in is not finished yet.",
+
+        (Lang::De, TsOn) => "Verbunden. Unterwegs erreichbar unter:",
+        (Lang::Tr, TsOn) => "Bağlı. Dışarıdan şu adresten ulaşılır:",
+        (Lang::En, TsOn) => "Connected. Reachable from anywhere at:",
+
+        (Lang::De, TsConnect) => "Mit Tailscale verbinden",
+        (Lang::Tr, TsConnect) => "Tailscale ile bağlan",
+        (Lang::En, TsConnect) => "Connect with Tailscale",
+
+        (Lang::De, TsCheck) => "Status prüfen",
+        (Lang::Tr, TsCheck) => "Durumu kontrol et",
+        (Lang::En, TsCheck) => "Check status",
+
+        (Lang::De, TsDisconnect) => "Tailscale trennen",
+        (Lang::Tr, TsDisconnect) => "Tailscale bağlantısını kes",
+        (Lang::En, TsDisconnect) => "Disconnect Tailscale",
+
+        (Lang::De, TsLoginTitle) => "Bei Tailscale anmelden",
+        (Lang::Tr, TsLoginTitle) => "Tailscale'e giriş yapın",
+        (Lang::En, TsLoginTitle) => "Sign in to Tailscale",
+
+        (Lang::De, TsLoginHint) => "Öffnen Sie den Link oder scannen Sie den QR-Code mit dem Handy und melden Sie sich an. Tippen Sie danach auf der Seite Fernzugriff auf „Status prüfen“.",
+        (Lang::Tr, TsLoginHint) => "Bağlantıyı açın veya QR kodunu telefonla tarayın ve giriş yapın. Ardından Uzaktan erişim sayfasında „Durumu kontrol et“e dokunun.",
+        (Lang::En, TsLoginHint) => "Open the link or scan the QR code with your phone and sign in. Then tap “Check status” on the remote access page.",
+
+        (Lang::De, TsOpen) => "Anmeldeseite öffnen",
+        (Lang::Tr, TsOpen) => "Giriş sayfasını aç",
+        (Lang::En, TsOpen) => "Open the sign-in page",
     }
 }
 
