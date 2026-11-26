@@ -112,6 +112,13 @@ pub enum Text {
     FolderFailed,
     LanguageTitle,
     LanguageIntro,
+    IptvTitle,
+    IptvIntro,
+    IptvCurrent,
+    IptvNone,
+    IptvM3u,
+    IptvEpg,
+    IptvInvalid,
 }
 
 pub fn t(lang: Lang, text: Text) -> &'static str {
@@ -354,6 +361,34 @@ pub fn t(lang: Lang, text: Text) -> &'static str {
         (Lang::De, LanguageIntro) => "Gilt für den Fernseher und diese Verwaltung. Der Fernseher startet dafür kurz neu.",
         (Lang::Tr, LanguageIntro) => "Televizyon ve bu yönetim paneli için geçerlidir. Televizyon bunun için kısa süre yeniden başlar.",
         (Lang::En, LanguageIntro) => "Applies to the TV and this console. The TV restarts briefly for it.",
+
+        (Lang::De, IptvTitle) => "Fernsehsender (IPTV)",
+        (Lang::Tr, IptvTitle) => "TV kanalları (IPTV)",
+        (Lang::En, IptvTitle) => "TV channels (IPTV)",
+
+        (Lang::De, IptvIntro) => "Die Adresse der Senderliste bekommen Sie von Ihrem IPTV-Anbieter. Der Fernseher startet nach dem Speichern kurz neu.",
+        (Lang::Tr, IptvIntro) => "Kanal listesinin adresini IPTV sağlayıcınızdan alırsınız. Kaydettikten sonra televizyon kısa süre yeniden başlar.",
+        (Lang::En, IptvIntro) => "Your IPTV provider gives you the channel list address. The TV restarts briefly after saving.",
+
+        (Lang::De, IptvCurrent) => "Eingerichtet bei:",
+        (Lang::Tr, IptvCurrent) => "Kayıtlı sağlayıcı:",
+        (Lang::En, IptvCurrent) => "Set up with:",
+
+        (Lang::De, IptvNone) => "Noch keine Senderliste eingerichtet.",
+        (Lang::Tr, IptvNone) => "Henüz kanal listesi ayarlanmadı.",
+        (Lang::En, IptvNone) => "No channel list set up yet.",
+
+        (Lang::De, IptvM3u) => "Adresse der Senderliste (M3U)",
+        (Lang::Tr, IptvM3u) => "Kanal listesi adresi (M3U)",
+        (Lang::En, IptvM3u) => "Channel list address (M3U)",
+
+        (Lang::De, IptvEpg) => "Adresse der Programmzeitschrift (EPG, optional)",
+        (Lang::Tr, IptvEpg) => "Yayın akışı adresi (EPG, isteğe bağlı)",
+        (Lang::En, IptvEpg) => "Programme guide address (EPG, optional)",
+
+        (Lang::De, IptvInvalid) => "Bitte eine Adresse eingeben, die mit http:// oder https:// beginnt, ohne Leerzeichen.",
+        (Lang::Tr, IptvInvalid) => "Lütfen http:// veya https:// ile başlayan, boşluk içermeyen bir adres girin.",
+        (Lang::En, IptvInvalid) => "Please enter an address starting with http:// or https://, without spaces.",
     }
 }
 

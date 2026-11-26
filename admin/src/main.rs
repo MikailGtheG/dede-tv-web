@@ -137,6 +137,7 @@ fn main() {
             "/etc/dede-tv/virtual-channels.conf",
         )),
         media_root: PathBuf::from(setting("DEDE_MEDIA_ROOT", "/srv/dede-tv/media")),
+        iptv_config: PathBuf::from(setting("DEDE_IPTV_CONFIG", "/etc/dede-tv/iptv.conf")),
     })));
     let server = match tiny_http::Server::http(&listen) {
         Ok(server) => Arc::new(server),

@@ -23,6 +23,7 @@ pub struct Config {
     pub runtime_dir: PathBuf,
     pub ui_config: PathBuf,
     pub channels_config: PathBuf,
+    pub iptv_config: PathBuf,
     pub media_root: PathBuf,
 }
 
@@ -280,9 +281,13 @@ impl App {
                 Response::html(200, html::channel(lang, csrf, &channel, &films, notice))
             }
             ["language"] => Response::html(200, html::language(lang, csrf)),
+            ["iptv"] => {
+                let host = apply::iptv_host(&self.config.iptv_config);
+                Response::html(200, html::iptv(lang, csrf, host.as_deref(), None))
+            }
             ["apply", id] => {
                 let back = query_value(&request.query, "back")
-                    .filter(|b| b.starts_with("/channels") || b == "/language")
+                    .filter(|b| b.starts_with("/channels") || b == "/language" || b == "/iptv")
                     .unwrap_or("/channels".into());
                 let state = match apply::outcome(&self.config.state_dir, id) {
                     apply::Outcome::Pending => html::ApplyState::Pending,
@@ -329,6 +334,34 @@ impl App {
         form: &[(String, String)],
     ) -> Response {
         let parts: Vec<&str> = request.path.trim_matches('/').split('/').collect();
+        if parts.as_slice() == ["iptv"] {
+            let (m3u, epg) = (field(form, "m3u_url").trim(), field(form, "epg_url").trim());
+            if !apply::plausible_url(m3u) || !(epg.is_empty() || apply::plausible_url(epg)) {
+                let host = apply::iptv_host(&self.config.iptv_config);
+                return Response::html(
+                    200,
+                    html::iptv(
+                        lang,
+                        csrf,
+                        host.as_deref(),
+                        Some(Notice::Error(Text::IptvInvalid)),
+                    ),
+                );
+            }
+            return match apply::submit_iptv(&self.config.state_dir, m3u, epg) {
+                Ok(id) => {
+                    eprintln!(
+                        "dede-tv-admin: IPTV source change requested from {}",
+                        request.remote
+                    );
+                    Response::redirect(&format!("/apply/{id}?back=/iptv"))
+                }
+                Err(e) => {
+                    eprintln!("dede-tv-admin: cannot queue change: {e}");
+                    Response::html(500, html::rejected(lang))
+                }
+            };
+        }
         if parts.as_slice() == ["language"] {
             let Some(choice) = Lang::parse(field(form, "language")) else {
                 return Response::html(400, html::language(lang, csrf));
@@ -636,6 +669,7 @@ mod tests {
             runtime_dir: dir.join("run"),
             ui_config: dir.join("ui.conf"),
             channels_config: dir.join("virtual-channels.conf"),
+            iptv_config: dir.join("iptv.conf"),
             media_root: dir.join("media"),
         });
         Fixture { app, dir }
@@ -1117,6 +1151,39 @@ mod tests {
             text(&get(&mut f.app, "/language", Some(&cookie))).contains(r#"value="tr" checked"#)
         );
         assert!(text(&get(&mut f.app, "/", Some(&cookie))).contains("Yönetim"));
+    }
+
+    #[test]
+    fn iptv_page_requests_the_change_without_echoing_addresses() {
+        let mut f = fixture();
+        let (cookie, csrf) = signed_in(&mut f);
+        assert!(text(&get(&mut f.app, "/iptv", Some(&cookie))).contains("Noch keine Senderliste"));
+        let reply = post(
+            &mut f.app,
+            "/iptv",
+            &cookie,
+            &format!(
+                "csrf={csrf}&m3u_url=https%3A%2F%2Ftv.example%2Fx.m3u%3Ftoken%3Dgeheim&epg_url="
+            ),
+        );
+        assert!(header(&reply, "Location").unwrap().ends_with("?back=/iptv"));
+        let request = pending_request(&f);
+        assert_eq!(request["kind"], "iptv");
+        assert_eq!(request["m3u_url"], "https://tv.example/x.m3u?token=geheim");
+        let bad = text(&post(
+            &mut f.app,
+            "/iptv",
+            &cookie,
+            &format!("csrf={csrf}&m3u_url=ftp%3A%2F%2Fx"),
+        ));
+        assert!(bad.contains("http:// oder https://") && !bad.contains("ftp://x"));
+        fs::write(
+            f.dir.join("iptv.conf"),
+            "M3U_URL=https://tv.example/x.m3u?token=geheim\n",
+        )
+        .unwrap();
+        let page = text(&get(&mut f.app, "/iptv", Some(&cookie)));
+        assert!(page.contains("tv.example") && !page.contains("geheim"));
     }
 
     #[test]

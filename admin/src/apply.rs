@@ -56,6 +56,39 @@ pub fn submit_language(state: &Path, lang: crate::i18n::Lang) -> std::io::Result
     Ok(id)
 }
 
+/// Addresses as typed; the root helper validates them (never logged here).
+pub fn submit_iptv(state: &Path, m3u: &str, epg: &str) -> std::io::Result<String> {
+    let id = random_token()[..32].to_string();
+    let request = json!({"id": id, "kind": "iptv", "m3u_url": m3u, "epg_url": epg});
+    let dir = state.join("requests");
+    fs::create_dir_all(&dir)?;
+    write_private(
+        &dir.join(format!("{id}.json")),
+        request.to_string().as_bytes(),
+    )?;
+    Ok(id)
+}
+
+/// Same basic rule as the device: http(s), no blanks or control characters.
+pub fn plausible_url(url: &str) -> bool {
+    (url.starts_with("http://") || url.starts_with("https://"))
+        && url.len() > 8
+        && url.len() <= 2048
+        && !url.chars().any(|c| c.is_whitespace() || c.is_control())
+}
+
+/// Host part of the configured M3U address, for display only.
+pub fn iptv_host(config: &Path) -> Option<String> {
+    let text = fs::read_to_string(config).ok()?;
+    let url = text
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("M3U_URL="))?;
+    let rest = url.split_once("://")?.1;
+    let authority = rest.split(['/', '?', '#']).next()?;
+    let host = authority.rsplit('@').next()?;
+    (!host.is_empty()).then(|| host.chars().take(80).collect())
+}
+
 pub fn outcome(state: &Path, id: &str) -> Outcome {
     if !valid_id(id) {
         return Outcome::Failed("unknown".into());
@@ -80,6 +113,31 @@ pub fn outcome(state: &Path, id: &str) -> Outcome {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn iptv_helpers() {
+        assert!(plausible_url("https://tv.example/get.php?u=1&t=2"));
+        for bad in [
+            "",
+            "ftp://x",
+            "https://a b",
+            "http://",
+            "javascript:alert(1)",
+        ] {
+            assert!(!plausible_url(bad), "{bad}");
+        }
+        let dir = std::env::temp_dir().join(format!("dede-iptv-{}", random_token()));
+        fs::create_dir_all(&dir).unwrap();
+        let conf = dir.join("iptv.conf");
+        assert_eq!(iptv_host(&conf), None);
+        fs::write(
+            &conf,
+            "M3U_URL=https://user:secret@tv.example:8443/list.m3u?token=abc\n",
+        )
+        .unwrap();
+        assert_eq!(iptv_host(&conf).as_deref(), Some("tv.example:8443"));
+        fs::remove_dir_all(dir).unwrap();
+    }
 
     #[test]
     fn request_and_outcome() {

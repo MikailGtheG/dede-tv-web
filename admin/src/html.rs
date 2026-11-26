@@ -221,7 +221,7 @@ pub fn channel(
     let mut rows = String::new();
     for film in films {
         rows.push_str(&format!(
-            r#"<div class="row"><span>{name}</span><span class="size">{mb} MB</span>{delete}</div>"#,
+            r#"<div class="row film"><span>{name}</span><span class="size">{mb} MB</span>{delete}</div>"#,
             name = escape(&film.name),
             mb = film.bytes.div_ceil(1024 * 1024),
             delete = post_button(&format!("{base}/films/delete"), csrf, &[("film", &film.name)], t(lang, Text::Delete), "link"),
@@ -309,6 +309,39 @@ pub fn language(lang: Lang, csrf: &str) -> String {
     page(lang, Text::LanguageTitle, &logout_form(lang, csrf), &body)
 }
 
+pub fn iptv(lang: Lang, csrf: &str, host: Option<&str>, message: Option<Notice>) -> String {
+    let current = match host {
+        Some(host) => format!(
+            "<p>{} <strong>{}</strong></p>",
+            escape(t(lang, Text::IptvCurrent)),
+            escape(host)
+        ),
+        None => format!("<p>{}</p>", escape(t(lang, Text::IptvNone))),
+    };
+    let body = format!(
+        r#"<p><a href="/">← {back}</a></p>
+<h1>{title}</h1>
+{current}{notice}<p>{intro}</p>
+<form method="post" action="/iptv">
+{token}
+<label for="m3u">{m3u}</label>
+<input id="m3u" name="m3u_url" type="url" inputmode="url" autocomplete="off" maxlength="2048" required>
+<label for="epg">{epg}</label>
+<input id="epg" name="epg_url" type="url" inputmode="url" autocomplete="off" maxlength="2048">
+<button type="submit">{save}</button>
+</form>"#,
+        back = escape(t(lang, Text::Back)),
+        title = escape(t(lang, Text::IptvTitle)),
+        notice = notice(lang, message),
+        intro = escape(t(lang, Text::IptvIntro)),
+        token = hidden("csrf", csrf),
+        m3u = escape(t(lang, Text::IptvM3u)),
+        epg = escape(t(lang, Text::IptvEpg)),
+        save = escape(t(lang, Text::Save)),
+    );
+    page(lang, Text::IptvTitle, &logout_form(lang, csrf), &body)
+}
+
 pub enum ApplyState {
     Pending,
     Done,
@@ -353,11 +386,12 @@ pub fn home(lang: Lang, csrf: &str, message: Option<Notice>) -> String {
         escape(t(lang, Text::LogOut))
     );
     let body = format!(
-        "<h1>{}</h1>\n{}<p>{}</p>\n<nav class=\"rows\"><a class=\"row\" href=\"/channels\">{}</a><a class=\"row\" href=\"/language\">{}</a></nav>",
+        "<h1>{}</h1>\n{}<p>{}</p>\n<nav class=\"rows\"><a class=\"row\" href=\"/channels\">{}</a><a class=\"row\" href=\"/iptv\">{}</a><a class=\"row\" href=\"/language\">{}</a></nav>",
         escape(t(lang, Text::HomeTitle)),
         notice(lang, message),
         escape(t(lang, Text::HomeIntro)),
         escape(t(lang, Text::ChannelsTitle)),
+        escape(t(lang, Text::IptvTitle)),
         escape(t(lang, Text::LanguageTitle))
     );
     page(lang, Text::HomeTitle, &logout, &body)
