@@ -146,6 +146,31 @@ pub enum Text {
     TsLoginTitle,
     TsLoginHint,
     TsOpen,
+    SystemTitle,
+    SystemIntro,
+    RestartTv,
+    RestartTvHint,
+    Reboot,
+    RebootHint,
+    DiagTitle,
+    DiagHint,
+    DiagRun,
+    DiagUptime,
+    DiagHours,
+    DiagMinutes,
+    DiagMedia,
+    DiagFreeOf,
+    DiagSystem,
+    DiagFailed,
+    DiagNone,
+    UnitTv,
+    UnitGuard,
+    UnitConsole,
+    StateActive,
+    StateInactive,
+    StateFailed,
+    StateOther,
+    DiagDone,
 }
 
 pub fn t(lang: Lang, text: Text) -> &'static str {
@@ -524,6 +549,106 @@ pub fn t(lang: Lang, text: Text) -> &'static str {
         (Lang::De, TsOpen) => "Anmeldeseite öffnen",
         (Lang::Tr, TsOpen) => "Giriş sayfasını aç",
         (Lang::En, TsOpen) => "Open the sign-in page",
+
+        (Lang::De, SystemTitle) => "Fernseher und Diagnose",
+        (Lang::Tr, SystemTitle) => "Televizyon ve tanılama",
+        (Lang::En, SystemTitle) => "TV and diagnostics",
+
+        (Lang::De, SystemIntro) => "Wenn etwas nicht stimmt: zuerst den Fernseher neu starten. Hilft das nicht, das ganze Gerät.",
+        (Lang::Tr, SystemIntro) => "Bir sorun varsa: önce televizyonu yeniden başlatın. İşe yaramazsa tüm cihazı.",
+        (Lang::En, SystemIntro) => "If something is wrong: restart the TV first. If that does not help, the whole device.",
+
+        (Lang::De, RestartTv) => "Fernseher neu starten",
+        (Lang::Tr, RestartTv) => "Televizyonu yeniden başlat",
+        (Lang::En, RestartTv) => "Restart the TV",
+
+        (Lang::De, RestartTvHint) => "Das Bild ist etwa eine halbe Minute weg, danach läuft der letzte Sender wieder.",
+        (Lang::Tr, RestartTvHint) => "Görüntü yaklaşık yarım dakika gider, sonra son kanal tekrar açılır.",
+        (Lang::En, RestartTvHint) => "The picture is gone for about half a minute, then the last channel plays again.",
+
+        (Lang::De, Reboot) => "Gerät neu starten",
+        (Lang::Tr, Reboot) => "Cihazı yeniden başlat",
+        (Lang::En, Reboot) => "Restart the device",
+
+        (Lang::De, RebootHint) => "Dauert etwa zwei Minuten. So lange ist diese Seite nicht erreichbar.",
+        (Lang::Tr, RebootHint) => "Yaklaşık iki dakika sürer. Bu süre boyunca bu sayfaya ulaşılamaz.",
+        (Lang::En, RebootHint) => "Takes about two minutes. This page is unreachable meanwhile.",
+
+        (Lang::De, DiagTitle) => "Diagnose",
+        (Lang::Tr, DiagTitle) => "Tanılama",
+        (Lang::En, DiagTitle) => "Diagnostics",
+
+        (Lang::De, DiagHint) => "Zeigt, ob alle Teile laufen. Hilfreich, wenn Sie jemanden um Hilfe bitten.",
+        (Lang::Tr, DiagHint) => "Tüm parçaların çalışıp çalışmadığını gösterir. Birinden yardım isterken işe yarar.",
+        (Lang::En, DiagHint) => "Shows whether all parts are running. Useful when you ask someone for help.",
+
+        (Lang::De, DiagRun) => "Diagnose erstellen",
+        (Lang::Tr, DiagRun) => "Tanılama oluştur",
+        (Lang::En, DiagRun) => "Run diagnostics",
+
+        (Lang::De, DiagUptime) => "Läuft seit",
+        (Lang::Tr, DiagUptime) => "Çalışma süresi",
+        (Lang::En, DiagUptime) => "Running for",
+
+        (Lang::De, DiagHours) => "Std.",
+        (Lang::Tr, DiagHours) => "sa",
+        (Lang::En, DiagHours) => "h",
+
+        (Lang::De, DiagMinutes) => "Min.",
+        (Lang::Tr, DiagMinutes) => "dk",
+        (Lang::En, DiagMinutes) => "min",
+
+        (Lang::De, DiagMedia) => "Speicher für Filme",
+        (Lang::Tr, DiagMedia) => "Filmler için alan",
+        (Lang::En, DiagMedia) => "Storage for films",
+
+        (Lang::De, DiagFreeOf) => "frei von",
+        (Lang::Tr, DiagFreeOf) => "boş, toplam",
+        (Lang::En, DiagFreeOf) => "free of",
+
+        (Lang::De, DiagSystem) => "System",
+        (Lang::Tr, DiagSystem) => "Sistem",
+        (Lang::En, DiagSystem) => "System",
+
+        (Lang::De, DiagFailed) => "Dienste mit Fehlern",
+        (Lang::Tr, DiagFailed) => "Hatalı servisler",
+        (Lang::En, DiagFailed) => "Services with errors",
+
+        (Lang::De, DiagNone) => "keine",
+        (Lang::Tr, DiagNone) => "yok",
+        (Lang::En, DiagNone) => "none",
+
+        (Lang::De, UnitTv) => "Fernsehbild",
+        (Lang::Tr, UnitTv) => "Televizyon görüntüsü",
+        (Lang::En, UnitTv) => "TV picture",
+
+        (Lang::De, UnitGuard) => "Senderwächter",
+        (Lang::Tr, UnitGuard) => "Kanal bekçisi",
+        (Lang::En, UnitGuard) => "Channel guard",
+
+        (Lang::De, UnitConsole) => "Verwaltung",
+        (Lang::Tr, UnitConsole) => "Yönetim paneli",
+        (Lang::En, UnitConsole) => "Console",
+
+        (Lang::De, StateActive) => "läuft",
+        (Lang::Tr, StateActive) => "çalışıyor",
+        (Lang::En, StateActive) => "running",
+
+        (Lang::De, StateInactive) => "aus",
+        (Lang::Tr, StateInactive) => "kapalı",
+        (Lang::En, StateInactive) => "off",
+
+        (Lang::De, StateFailed) => "Fehler",
+        (Lang::Tr, StateFailed) => "hata",
+        (Lang::En, StateFailed) => "error",
+
+        (Lang::De, StateOther) => "unbekannt",
+        (Lang::Tr, StateOther) => "bilinmiyor",
+        (Lang::En, StateOther) => "unknown",
+
+        (Lang::De, DiagDone) => "Stand: gerade eben.",
+        (Lang::Tr, DiagDone) => "Durum: şu an.",
+        (Lang::En, DiagDone) => "Status: just now.",
     }
 }
 

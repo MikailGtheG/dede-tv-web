@@ -89,6 +89,11 @@ pub fn submit_tailscale(state: &Path, kind: &'static str) -> std::io::Result<Str
     queue(state, json!({ "kind": kind }))
 }
 
+/// `diagnostics`, `restart-tv` or `reboot`.
+pub fn submit_maintenance(state: &Path, kind: &'static str) -> std::io::Result<String> {
+    queue(state, json!({ "kind": kind }))
+}
+
 fn queue(state: &Path, mut request: Value) -> std::io::Result<String> {
     let id = random_token()[..32].to_string();
     request["id"] = json!(id);
@@ -101,13 +106,24 @@ fn queue(state: &Path, mut request: Value) -> std::io::Result<String> {
     Ok(id)
 }
 
-fn answer_field(state: &Path, id: &str, name: &str) -> Option<String> {
+fn answer(state: &Path, id: &str) -> Option<Value> {
     if !valid_id(id) {
         return None;
     }
     let text = fs::read_to_string(state.join("results").join(format!("{id}.json"))).ok()?;
-    let value: Value = serde_json::from_str(&text).ok()?;
-    value[name].as_str().map(String::from)
+    serde_json::from_str(&text).ok()
+}
+
+fn answer_field(state: &Path, id: &str, name: &str) -> Option<String> {
+    answer(state, id)?[name].as_str().map(String::from)
+}
+
+/// Status report from a `diagnostics` request.
+pub fn report(state: &Path, id: &str) -> Option<Value> {
+    answer(state, id)?
+        .get("report")
+        .filter(|r| r.is_object())
+        .cloned()
 }
 
 /// Configuration of a new WireGuard device, kept until it is dismissed.
