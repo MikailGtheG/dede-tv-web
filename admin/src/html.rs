@@ -379,6 +379,100 @@ pub fn applying(lang: Lang, csrf: &str, state: ApplyState, back: &str) -> String
     page(lang, Text::Applying, &logout_form(lang, csrf), &body)
 }
 
+/// `home` is the address this page was opened with in the home network.
+pub fn remote(
+    lang: Lang,
+    csrf: &str,
+    home: Option<&str>,
+    state: &crate::remote::State,
+    message: Option<Notice>,
+) -> String {
+    let mut rows = String::new();
+    for device in &state.devices {
+        rows.push_str(&format!(
+            r#"<div class="row film"><span>{name}</span><span class="size">{address}</span>{remove}</div>"#,
+            name = escape(&device.name),
+            address = escape(&device.address),
+            remove = post_button(
+                "/remote/remove",
+                csrf,
+                &[("address", &device.address)],
+                t(lang, Text::WgRemove),
+                "link"
+            ),
+        ));
+    }
+    if rows.is_empty() {
+        rows = format!("<p>{}</p>", escape(t(lang, Text::WgNone)));
+    }
+    let home = home
+        .map(|h| {
+            format!(
+                "<p>{} <strong>http://{}</strong></p>",
+                escape(t(lang, Text::RemoteHome)),
+                escape(h)
+            )
+        })
+        .unwrap_or_default();
+    let body = format!(
+        r#"<p><a href="/">← {back}</a></p>
+<h1>{title}</h1>
+{notice}<p>{intro}</p>
+{home}<p>{away} <strong>http://10.77.0.1:8080</strong></p>
+<h2>{devices}</h2>
+<div class="rows">{rows}</div>
+<h2>{add_title}</h2>
+<form method="post" action="/remote/add">
+{token}
+<label for="name">{name}</label>
+<input id="name" name="name" maxlength="32" autocomplete="off" required>
+<label for="endpoint">{endpoint}</label>
+<input id="endpoint" name="endpoint" maxlength="260" inputmode="url" autocomplete="off" value="{current}" required>
+<p class="hint">{router}</p>
+<button type="submit">{add}</button>
+</form>"#,
+        back = escape(t(lang, Text::Back)),
+        title = escape(t(lang, Text::RemoteTitle)),
+        notice = notice(lang, message),
+        intro = escape(t(lang, Text::RemoteIntro)),
+        away = escape(t(lang, Text::RemoteAway)),
+        devices = escape(t(lang, Text::WgDevices)),
+        add_title = escape(t(lang, Text::WgAddTitle)),
+        token = hidden("csrf", csrf),
+        name = escape(t(lang, Text::WgName)),
+        endpoint = escape(t(lang, Text::WgEndpoint)),
+        current = escape(state.endpoint.as_deref().unwrap_or("")),
+        router = escape(t(lang, Text::WgRouterHint)),
+        add = escape(t(lang, Text::WgAdd)),
+    );
+    page(lang, Text::RemoteTitle, &logout_form(lang, csrf), &body)
+}
+
+/// The new device's configuration, once, as QR code and as text.
+pub fn wireguard_peer(lang: Lang, csrf: &str, id: &str, config: &str) -> String {
+    let body = format!(
+        r#"<h1>{title}</h1>
+<p class="msg ok" role="status">{done}</p>
+<p>{hint}</p>
+{qr}
+<pre class="config">{config}</pre>
+{dismiss}"#,
+        title = escape(t(lang, Text::WgPeerTitle)),
+        done = escape(t(lang, Text::WgPeerReady)),
+        hint = escape(t(lang, Text::WgPeerHint)),
+        qr = crate::remote::qr_svg(config).unwrap_or_default(),
+        config = escape(config),
+        dismiss = post_button(
+            &format!("/apply/{id}/forget"),
+            csrf,
+            &[],
+            t(lang, Text::WgPeerDone),
+            ""
+        ),
+    );
+    page(lang, Text::WgPeerTitle, &logout_form(lang, csrf), &body)
+}
+
 pub fn home(lang: Lang, csrf: &str, message: Option<Notice>) -> String {
     let logout = format!(
         r#"<form method="post" action="/logout">{}<button class="link" type="submit">{}</button></form>"#,
@@ -386,12 +480,13 @@ pub fn home(lang: Lang, csrf: &str, message: Option<Notice>) -> String {
         escape(t(lang, Text::LogOut))
     );
     let body = format!(
-        "<h1>{}</h1>\n{}<p>{}</p>\n<nav class=\"rows\"><a class=\"row\" href=\"/channels\">{}</a><a class=\"row\" href=\"/iptv\">{}</a><a class=\"row\" href=\"/language\">{}</a></nav>",
+        "<h1>{}</h1>\n{}<p>{}</p>\n<nav class=\"rows\"><a class=\"row\" href=\"/channels\">{}</a><a class=\"row\" href=\"/iptv\">{}</a><a class=\"row\" href=\"/remote\">{}</a><a class=\"row\" href=\"/language\">{}</a></nav>",
         escape(t(lang, Text::HomeTitle)),
         notice(lang, message),
         escape(t(lang, Text::HomeIntro)),
         escape(t(lang, Text::ChannelsTitle)),
         escape(t(lang, Text::IptvTitle)),
+        escape(t(lang, Text::RemoteTitle)),
         escape(t(lang, Text::LanguageTitle))
     );
     page(lang, Text::HomeTitle, &logout, &body)

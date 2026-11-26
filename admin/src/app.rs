@@ -8,6 +8,7 @@ use crate::channels::{self, Channel};
 use crate::html::{self, Notice};
 use crate::i18n::{Lang, Text};
 use crate::media;
+use crate::remote;
 use std::fs;
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -24,6 +25,7 @@ pub struct Config {
     pub ui_config: PathBuf,
     pub channels_config: PathBuf,
     pub iptv_config: PathBuf,
+    pub remote_config: PathBuf,
     pub media_root: PathBuf,
 }
 
@@ -285,13 +287,34 @@ impl App {
                 let host = apply::iptv_host(&self.config.iptv_config);
                 Response::html(200, html::iptv(lang, csrf, host.as_deref(), None))
             }
+            ["remote"] => {
+                let state = remote::read(&self.config.remote_config);
+                let home = request
+                    .host
+                    .as_deref()
+                    .filter(|h| !h.starts_with("10.77.0.1:") && *h != "10.77.0.1");
+                Response::html(200, html::remote(lang, csrf, home, &state, notice))
+            }
             ["apply", id] => {
                 let back = query_value(&request.query, "back")
-                    .filter(|b| b.starts_with("/channels") || b == "/language" || b == "/iptv")
+                    .filter(|b| {
+                        b.starts_with("/channels")
+                            || b == "/language"
+                            || b == "/iptv"
+                            || b == "/remote"
+                    })
                     .unwrap_or("/channels".into());
                 let state = match apply::outcome(&self.config.state_dir, id) {
                     apply::Outcome::Pending => html::ApplyState::Pending,
-                    apply::Outcome::Done => html::ApplyState::Done,
+                    apply::Outcome::Done => {
+                        if let Some(peer) = apply::peer_config(&self.config.state_dir, id) {
+                            return Response::html(
+                                200,
+                                html::wireguard_peer(lang, csrf, id, &peer),
+                            );
+                        }
+                        html::ApplyState::Done
+                    }
                     apply::Outcome::Failed(code) => html::ApplyState::Failed(code),
                 };
                 Response::html(200, html::applying(lang, csrf, state, &back))
@@ -326,6 +349,25 @@ impl App {
         }
     }
 
+    fn queued(
+        &self,
+        queued: std::io::Result<String>,
+        back: &str,
+        request: &Request,
+        what: &str,
+    ) -> Response {
+        match queued {
+            Ok(id) => {
+                eprintln!("dede-tv-admin: {what} requested from {}", request.remote);
+                Response::redirect(&format!("/apply/{id}?back={back}"))
+            }
+            Err(e) => {
+                eprintln!("dede-tv-admin: cannot queue change: {e}");
+                Response::redirect(&format!("{back}?n=save-failed"))
+            }
+        }
+    }
+
     fn signed_in_post(
         &mut self,
         request: &Request,
@@ -334,6 +376,50 @@ impl App {
         form: &[(String, String)],
     ) -> Response {
         let parts: Vec<&str> = request.path.trim_matches('/').split('/').collect();
+        if let ["apply", id, "forget"] = parts.as_slice() {
+            if let Err(e) = apply::forget_peer(&self.config.state_dir, id) {
+                eprintln!("dede-tv-admin: cannot clear device access: {e}");
+            }
+            return Response::redirect("/remote");
+        }
+        if parts.as_slice() == ["remote", "add"] {
+            let (name, endpoint) = (field(form, "name").trim(), field(form, "endpoint").trim());
+            if !remote::valid_name(name) || !remote::valid_endpoint(endpoint) {
+                let state = remote::read(&self.config.remote_config);
+                return Response::html(
+                    200,
+                    html::remote(
+                        lang,
+                        csrf,
+                        None,
+                        &state,
+                        Some(Notice::Error(Text::WgInvalid)),
+                    ),
+                );
+            }
+            return self.queued(
+                apply::submit_wireguard_add(&self.config.state_dir, name, endpoint),
+                "/remote",
+                request,
+                "WireGuard device",
+            );
+        }
+        if parts.as_slice() == ["remote", "remove"] {
+            let address = field(form, "address");
+            let known = remote::read(&self.config.remote_config)
+                .devices
+                .iter()
+                .any(|d| d.address == address);
+            if !known {
+                return Response::redirect("/remote");
+            }
+            return self.queued(
+                apply::submit_wireguard_remove(&self.config.state_dir, address),
+                "/remote",
+                request,
+                "WireGuard removal",
+            );
+        }
         if parts.as_slice() == ["iptv"] {
             let (m3u, epg) = (field(form, "m3u_url").trim(), field(form, "epg_url").trim());
             if !apply::plausible_url(m3u) || !(epg.is_empty() || apply::plausible_url(epg)) {
@@ -562,6 +648,7 @@ fn notice_from_query(query: &str) -> Option<Notice> {
         "bad-name" => Some(Notice::Error(Text::UploadBadName)),
         "exists" => Some(Notice::Error(Text::UploadExists)),
         "failed" => Some(Notice::Error(Text::UploadFailed)),
+        "save-failed" => Some(Notice::Error(Text::SavingFailed)),
         _ => None,
     }
 }
@@ -670,6 +757,7 @@ mod tests {
             ui_config: dir.join("ui.conf"),
             channels_config: dir.join("virtual-channels.conf"),
             iptv_config: dir.join("iptv.conf"),
+            remote_config: dir.join("remote.conf"),
             media_root: dir.join("media"),
         });
         Fixture { app, dir }
@@ -1184,6 +1272,84 @@ mod tests {
         .unwrap();
         let page = text(&get(&mut f.app, "/iptv", Some(&cookie)));
         assert!(page.contains("tv.example") && !page.contains("geheim"));
+    }
+
+    #[test]
+    fn remote_access_adds_shows_once_and_removes_devices() {
+        let mut f = fixture();
+        let (cookie, csrf) = signed_in(&mut f);
+        let page = text(&get(&mut f.app, "/remote", Some(&cookie)));
+        assert!(page.contains("Noch kein Gerät") && page.contains("http://10.77.0.1:8080"));
+        let bad = text(&post(
+            &mut f.app,
+            "/remote/add",
+            &cookie,
+            &format!("csrf={csrf}&name=%3Cx%3E&endpoint=haus.example.org"),
+        ));
+        assert!(bad.contains("role=\"alert\"") && !bad.contains("<x>"));
+        assert!(fs::read_dir(f.dir.join("state/requests")).is_err());
+
+        let reply = post(
+            &mut f.app,
+            "/remote/add",
+            &cookie,
+            &format!("csrf={csrf}&name=Handy+Mikail&endpoint=haus.example.org"),
+        );
+        let location = header(&reply, "Location").unwrap().to_string();
+        assert!(location.ends_with("?back=/remote"));
+        let request = pending_request(&f);
+        assert_eq!(request["kind"], "wireguard-add");
+        assert_eq!(request["name"], "Handy Mikail");
+        assert_eq!(request["endpoint"], "haus.example.org");
+
+        let id = request["id"].as_str().unwrap();
+        let results = f.dir.join("state/results");
+        fs::create_dir_all(&results).unwrap();
+        let peer = "[Interface]\nPrivateKey = geheim=\nAddress = 10.77.0.2/32\n";
+        fs::write(
+            results.join(format!("{id}.json")),
+            serde_json::json!({"id": id, "ok": true, "peer": peer}).to_string(),
+        )
+        .unwrap();
+        let shown = text(&get(&mut f.app, &location, Some(&cookie)));
+        assert!(shown.contains("geheim=") && shown.contains("<svg class=\"qr\""));
+        let forget = post(
+            &mut f.app,
+            &format!("/apply/{id}/forget"),
+            &cookie,
+            &format!("csrf={csrf}"),
+        );
+        assert_eq!(header(&forget, "Location"), Some("/remote"));
+        let after = text(&get(&mut f.app, &location, Some(&cookie)));
+        assert!(!after.contains("geheim") && after.contains("role=\"status\""));
+
+        fs::write(
+            f.dir.join("remote.conf"),
+            "WG_ENDPOINT=haus.example.org:51820\nWG_DEVICE=10.77.0.2 key= Handy Mikail\n",
+        )
+        .unwrap();
+        let page = text(&get(&mut f.app, "/remote", Some(&cookie)));
+        assert!(page.contains("Handy Mikail") && page.contains("value=\"haus.example.org:51820\""));
+        let unknown = post(
+            &mut f.app,
+            "/remote/remove",
+            &cookie,
+            &format!("csrf={csrf}&address=10.77.0.9"),
+        );
+        assert_eq!(header(&unknown, "Location"), Some("/remote"));
+        assert!(fs::read_dir(f.dir.join("state/requests"))
+            .unwrap()
+            .next()
+            .is_none());
+        post(
+            &mut f.app,
+            "/remote/remove",
+            &cookie,
+            &format!("csrf={csrf}&address=10.77.0.2"),
+        );
+        let request = pending_request(&f);
+        assert_eq!(request["kind"], "wireguard-remove");
+        assert_eq!(request["address"], "10.77.0.2");
     }
 
     #[test]

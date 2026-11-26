@@ -69,6 +69,66 @@ pub fn submit_iptv(state: &Path, m3u: &str, epg: &str) -> std::io::Result<String
     Ok(id)
 }
 
+/// Ask for a new WireGuard device; the answer carries its configuration.
+pub fn submit_wireguard_add(state: &Path, name: &str, endpoint: &str) -> std::io::Result<String> {
+    queue(
+        state,
+        json!({"kind": "wireguard-add", "name": name, "endpoint": endpoint}),
+    )
+}
+
+pub fn submit_wireguard_remove(state: &Path, address: &str) -> std::io::Result<String> {
+    queue(
+        state,
+        json!({"kind": "wireguard-remove", "address": address}),
+    )
+}
+
+fn queue(state: &Path, mut request: Value) -> std::io::Result<String> {
+    let id = random_token()[..32].to_string();
+    request["id"] = json!(id);
+    let dir = state.join("requests");
+    fs::create_dir_all(&dir)?;
+    write_private(
+        &dir.join(format!("{id}.json")),
+        request.to_string().as_bytes(),
+    )?;
+    Ok(id)
+}
+
+/// Configuration of a new WireGuard device, kept until it is dismissed.
+pub fn peer_config(state: &Path, id: &str) -> Option<String> {
+    if !valid_id(id) {
+        return None;
+    }
+    let text = fs::read_to_string(state.join("results").join(format!("{id}.json"))).ok()?;
+    let value: Value = serde_json::from_str(&text).ok()?;
+    value["peer"]
+        .as_str()
+        .filter(|p| p.starts_with("[Interface]") && p.len() <= 2048)
+        .map(String::from)
+}
+
+/// Drop the device's private key from the answer once it was taken over.
+pub fn forget_peer(state: &Path, id: &str) -> std::io::Result<()> {
+    if !valid_id(id) {
+        return Ok(());
+    }
+    let path = state.join("results").join(format!("{id}.json"));
+    let Ok(text) = fs::read_to_string(&path) else {
+        return Ok(());
+    };
+    let Ok(mut value) = serde_json::from_str::<Value>(&text) else {
+        return Ok(());
+    };
+    if let Some(map) = value.as_object_mut() {
+        if map.remove("peer").is_some() {
+            write_private(&path, value.to_string().as_bytes())?;
+        }
+    }
+    Ok(())
+}
+
 /// Same basic rule as the device: http(s), no blanks or control characters.
 pub fn plausible_url(url: &str) -> bool {
     (url.starts_with("http://") || url.starts_with("https://"))
