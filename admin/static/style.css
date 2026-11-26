@@ -25,3 +25,5 @@ a.row:hover,a.row:focus{border-color:var(--accent)}
 .button{display:inline-block;margin-top:20px;padding:16px 28px;border-radius:999px;background:var(--pill);color:#141414;font-weight:700;text-decoration:none}
 button.danger{background:#5a2a24;color:#fbe3dc}
 input[type=file]{padding:18px;background:var(--panel)}
+label.choice{display:flex;align-items:center;gap:14px;font-weight:600;padding:16px 18px;margin:10px 0;border-radius:14px;background:var(--panel)}
+label.choice input{width:28px;height:28px}

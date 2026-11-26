@@ -18,6 +18,15 @@ impl Lang {
         }
     }
 
+    /// The language's own name, shown in the language list.
+    pub fn native_name(self) -> &'static str {
+        match self {
+            Lang::De => "Deutsch",
+            Lang::Tr => "Türkçe",
+            Lang::En => "English",
+        }
+    }
+
     pub fn parse(code: &str) -> Option<Self> {
         match code {
             "de" => Some(Lang::De),
@@ -101,6 +110,8 @@ pub enum Text {
     ConfigUnreadable,
     FilmDeleted,
     FolderFailed,
+    LanguageTitle,
+    LanguageIntro,
 }
 
 pub fn t(lang: Lang, text: Text) -> &'static str {
@@ -335,6 +346,14 @@ pub fn t(lang: Lang, text: Text) -> &'static str {
         (Lang::De, FolderFailed) => "Der Ordner für den Sender konnte nicht angelegt werden.",
         (Lang::Tr, FolderFailed) => "Kanal klasörü oluşturulamadı.",
         (Lang::En, FolderFailed) => "The channel folder could not be created.",
+
+        (Lang::De, LanguageTitle) => "Sprache",
+        (Lang::Tr, LanguageTitle) => "Dil",
+        (Lang::En, LanguageTitle) => "Language",
+
+        (Lang::De, LanguageIntro) => "Gilt für den Fernseher und diese Verwaltung. Der Fernseher startet dafür kurz neu.",
+        (Lang::Tr, LanguageIntro) => "Televizyon ve bu yönetim paneli için geçerlidir. Televizyon bunun için kısa süre yeniden başlar.",
+        (Lang::En, LanguageIntro) => "Applies to the TV and this console. The TV restarts briefly for it.",
     }
 }
 

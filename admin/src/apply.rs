@@ -44,6 +44,18 @@ pub fn submit_channels(
     Ok(id)
 }
 
+pub fn submit_language(state: &Path, lang: crate::i18n::Lang) -> std::io::Result<String> {
+    let id = random_token()[..32].to_string();
+    let request = json!({"id": id, "kind": "language", "language": lang.code()});
+    let dir = state.join("requests");
+    fs::create_dir_all(&dir)?;
+    write_private(
+        &dir.join(format!("{id}.json")),
+        request.to_string().as_bytes(),
+    )?;
+    Ok(id)
+}
+
 pub fn outcome(state: &Path, id: &str) -> Outcome {
     if !valid_id(id) {
         return Outcome::Failed("unknown".into());

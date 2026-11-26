@@ -281,6 +281,34 @@ pub fn channel(
     page(lang, Text::ChannelsTitle, &logout_form(lang, csrf), &body)
 }
 
+pub fn language(lang: Lang, csrf: &str) -> String {
+    let mut options = String::new();
+    for option in [Lang::De, Lang::Tr, Lang::En] {
+        options.push_str(&format!(
+            r#"<label class="choice"><input type="radio" name="language" value="{code}"{checked}> {name}</label>"#,
+            code = option.code(),
+            checked = if option == lang { " checked" } else { "" },
+            name = option.native_name(),
+        ));
+    }
+    let body = format!(
+        r#"<p><a href="/">← {back}</a></p>
+<h1>{title}</h1>
+<p>{intro}</p>
+<form method="post" action="/language">
+{token}
+{options}
+<button type="submit">{save}</button>
+</form>"#,
+        back = escape(t(lang, Text::Back)),
+        title = escape(t(lang, Text::LanguageTitle)),
+        intro = escape(t(lang, Text::LanguageIntro)),
+        token = hidden("csrf", csrf),
+        save = escape(t(lang, Text::Save)),
+    );
+    page(lang, Text::LanguageTitle, &logout_form(lang, csrf), &body)
+}
+
 pub enum ApplyState {
     Pending,
     Done,
@@ -325,11 +353,12 @@ pub fn home(lang: Lang, csrf: &str, message: Option<Notice>) -> String {
         escape(t(lang, Text::LogOut))
     );
     let body = format!(
-        "<h1>{}</h1>\n{}<p>{}</p>\n<nav class=\"rows\"><a class=\"row\" href=\"/channels\">{}</a></nav>",
+        "<h1>{}</h1>\n{}<p>{}</p>\n<nav class=\"rows\"><a class=\"row\" href=\"/channels\">{}</a><a class=\"row\" href=\"/language\">{}</a></nav>",
         escape(t(lang, Text::HomeTitle)),
         notice(lang, message),
         escape(t(lang, Text::HomeIntro)),
-        escape(t(lang, Text::ChannelsTitle))
+        escape(t(lang, Text::ChannelsTitle)),
+        escape(t(lang, Text::LanguageTitle))
     );
     page(lang, Text::HomeTitle, &logout, &body)
 }
