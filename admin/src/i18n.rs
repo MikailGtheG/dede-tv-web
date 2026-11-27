@@ -171,6 +171,25 @@ pub enum Text {
     StateFailed,
     StateOther,
     DiagDone,
+    UpdTitle,
+    UpdIntro,
+    UpdCurrent,
+    UpdAvailable,
+    UpdUpToDate,
+    UpdChecking,
+    UpdDownloading,
+    UpdRestarting,
+    UpdFailed,
+    UpdErrUnreachable,
+    UpdErrBadImage,
+    UpdErrNoSpace,
+    UpdErrNoPartition,
+    UpdErrDidNotStart,
+    UpdErrOther,
+    UpdLastCheck,
+    UpdCheck,
+    UpdInstall,
+    UpdInstallHint,
 }
 
 pub fn t(lang: Lang, text: Text) -> &'static str {
@@ -649,6 +668,82 @@ pub fn t(lang: Lang, text: Text) -> &'static str {
         (Lang::De, DiagDone) => "Stand: gerade eben.",
         (Lang::Tr, DiagDone) => "Durum: şu an.",
         (Lang::En, DiagDone) => "Status: just now.",
+
+        (Lang::De, UpdTitle) => "Updates",
+        (Lang::Tr, UpdTitle) => "Güncellemeler",
+        (Lang::En, UpdTitle) => "Updates",
+
+        (Lang::De, UpdIntro) => "Neue Versionen werden nur mit gültiger Signatur installiert. Startet eine neue Version nicht richtig, kehrt der Fernseher von selbst zur vorherigen zurück. Ihre Sender, Filme und Einstellungen bleiben erhalten.",
+        (Lang::Tr, UpdIntro) => "Yeni sürümler yalnızca geçerli imzayla yüklenir. Yeni sürüm düzgün başlamazsa televizyon kendiliğinden önceki sürüme döner. Kanallarınız, filmleriniz ve ayarlarınız korunur.",
+        (Lang::En, UpdIntro) => "New versions are only installed with a valid signature. If a new version does not start properly, the TV returns to the previous one by itself. Your channels, films and settings are kept.",
+
+        (Lang::De, UpdCurrent) => "Installierte Version:",
+        (Lang::Tr, UpdCurrent) => "Yüklü sürüm:",
+        (Lang::En, UpdCurrent) => "Installed version:",
+
+        (Lang::De, UpdAvailable) => "Neue Version verfügbar:",
+        (Lang::Tr, UpdAvailable) => "Yeni sürüm mevcut:",
+        (Lang::En, UpdAvailable) => "New version available:",
+
+        (Lang::De, UpdUpToDate) => "Der Fernseher ist auf dem neuesten Stand.",
+        (Lang::Tr, UpdUpToDate) => "Televizyon güncel.",
+        (Lang::En, UpdUpToDate) => "The TV is up to date.",
+
+        (Lang::De, UpdChecking) => "Suche nach Updates …",
+        (Lang::Tr, UpdChecking) => "Güncellemeler aranıyor …",
+        (Lang::En, UpdChecking) => "Looking for updates …",
+
+        (Lang::De, UpdDownloading) => "Das Update wird geladen:",
+        (Lang::Tr, UpdDownloading) => "Güncelleme indiriliyor:",
+        (Lang::En, UpdDownloading) => "Downloading the update:",
+
+        (Lang::De, UpdRestarting) => "Das Update ist geladen. Der Fernseher startet jetzt neu und probiert die neue Version aus.",
+        (Lang::Tr, UpdRestarting) => "Güncelleme indirildi. Televizyon şimdi yeniden başlıyor ve yeni sürümü deniyor.",
+        (Lang::En, UpdRestarting) => "The update is downloaded. The TV now restarts and tries the new version.",
+
+        (Lang::De, UpdFailed) => "Das hat nicht geklappt:",
+        (Lang::Tr, UpdFailed) => "Bu işe yaramadı:",
+        (Lang::En, UpdFailed) => "That did not work:",
+
+        (Lang::De, UpdErrUnreachable) => "Keine Verbindung zum Update-Server.",
+        (Lang::Tr, UpdErrUnreachable) => "Güncelleme sunucusuna bağlantı yok.",
+        (Lang::En, UpdErrUnreachable) => "No connection to the update server.",
+
+        (Lang::De, UpdErrBadImage) => "Die geladene Datei war beschädigt. Bitte später noch einmal versuchen.",
+        (Lang::Tr, UpdErrBadImage) => "İndirilen dosya bozuktu. Lütfen daha sonra tekrar deneyin.",
+        (Lang::En, UpdErrBadImage) => "The downloaded file was damaged. Please try again later.",
+
+        (Lang::De, UpdErrNoSpace) => "Nicht genug Platz für das Update.",
+        (Lang::Tr, UpdErrNoSpace) => "Güncelleme için yeterli yer yok.",
+        (Lang::En, UpdErrNoSpace) => "Not enough space for the update.",
+
+        (Lang::De, UpdErrNoPartition) => "Auf diesem Gerät ist kein Platz für Updates eingerichtet. Dafür muss es einmal neu installiert werden.",
+        (Lang::Tr, UpdErrNoPartition) => "Bu cihazda güncellemeler için yer ayrılmamış. Bunun için bir kez yeniden kurulması gerekir.",
+        (Lang::En, UpdErrNoPartition) => "This device has no space set up for updates. It needs to be installed once more for that.",
+
+        (Lang::De, UpdErrDidNotStart) => "Die neue Version ist nicht richtig gestartet. Der Fernseher läuft wieder mit der vorherigen Version.",
+        (Lang::Tr, UpdErrDidNotStart) => "Yeni sürüm düzgün başlamadı. Televizyon yine önceki sürümle çalışıyor.",
+        (Lang::En, UpdErrDidNotStart) => "The new version did not start properly. The TV runs the previous version again.",
+
+        (Lang::De, UpdErrOther) => "Unbekannter Fehler.",
+        (Lang::Tr, UpdErrOther) => "Bilinmeyen hata.",
+        (Lang::En, UpdErrOther) => "Unknown error.",
+
+        (Lang::De, UpdLastCheck) => "Zuletzt geprüft (UTC):",
+        (Lang::Tr, UpdLastCheck) => "Son kontrol (UTC):",
+        (Lang::En, UpdLastCheck) => "Last checked (UTC):",
+
+        (Lang::De, UpdCheck) => "Nach Updates suchen",
+        (Lang::Tr, UpdCheck) => "Güncellemeleri ara",
+        (Lang::En, UpdCheck) => "Check for updates",
+
+        (Lang::De, UpdInstall) => "Update installieren",
+        (Lang::Tr, UpdInstall) => "Güncellemeyi yükle",
+        (Lang::En, UpdInstall) => "Install the update",
+
+        (Lang::De, UpdInstallHint) => "Dauert einige Minuten. Danach startet der Fernseher einmal neu.",
+        (Lang::Tr, UpdInstallHint) => "Birkaç dakika sürer. Ardından televizyon bir kez yeniden başlar.",
+        (Lang::En, UpdInstallHint) => "Takes a few minutes. Then the TV restarts once.",
     }
 }
 

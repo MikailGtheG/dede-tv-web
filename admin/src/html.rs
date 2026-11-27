@@ -638,6 +638,93 @@ pub fn diagnostics(lang: Lang, csrf: &str, report: &serde_json::Value) -> String
     page(lang, Text::DiagTitle, &logout_form(lang, csrf), &body)
 }
 
+/// `started`: a request was just queued, so the page reloads once anyway.
+pub fn updates(lang: Lang, csrf: &str, state: &crate::update::State, started: bool) -> String {
+    let line = |text: Text, value: &str| {
+        format!(
+            "<p>{} <strong>{}</strong></p>",
+            escape(t(lang, text)),
+            escape(value)
+        )
+    };
+    let mut status = line(Text::UpdCurrent, state.current.as_deref().unwrap_or("?"));
+    let mut actions = post_button("/updates/check", csrf, &[], t(lang, Text::UpdCheck), "");
+    match state.state.as_str() {
+        "checking" => {
+            status.push_str(&format!(
+                r#"<p role="status">{}</p>"#,
+                escape(t(lang, Text::UpdChecking))
+            ));
+            actions.clear();
+        }
+        "downloading" => {
+            status.push_str(&format!(
+                r#"<p role="status">{} {} %</p>"#,
+                escape(t(lang, Text::UpdDownloading)),
+                state.progress.unwrap_or(0)
+            ));
+            actions.clear();
+        }
+        "restarting" => {
+            status.push_str(&format!(
+                r#"<p class="msg ok" role="status">{}</p>"#,
+                escape(t(lang, Text::UpdRestarting))
+            ));
+            actions.clear();
+        }
+        "available" => {
+            if let Some(version) = &state.available {
+                status.push_str(&line(Text::UpdAvailable, version));
+                actions = format!(
+                    "<p>{}</p>{}{}",
+                    escape(t(lang, Text::UpdInstallHint)),
+                    post_button("/updates/install", csrf, &[], t(lang, Text::UpdInstall), ""),
+                    actions
+                );
+            }
+        }
+        "current" => status.push_str(&format!(
+            r#"<p class="msg ok" role="status">{}</p>"#,
+            escape(t(lang, Text::UpdUpToDate))
+        )),
+        "failed" => {
+            let reason = match state.message.as_deref() {
+                Some("unreachable" | "bad-source" | "bad-release") => Text::UpdErrUnreachable,
+                Some("bad-image" | "download-failed") => Text::UpdErrBadImage,
+                Some("no-space") => Text::UpdErrNoSpace,
+                Some("no-update-partition") => Text::UpdErrNoPartition,
+                Some("update-did-not-start") => Text::UpdErrDidNotStart,
+                _ => Text::UpdErrOther,
+            };
+            status.push_str(&format!(
+                r#"<p class="msg error" role="alert">{} {}</p>"#,
+                escape(t(lang, Text::UpdFailed)),
+                escape(t(lang, reason))
+            ));
+        }
+        _ => {}
+    }
+    if let Some(checked) = &state.checked {
+        status.push_str(&line(Text::UpdLastCheck, &checked.replace('T', " ")));
+    }
+    let refresh = if started || crate::update::busy(state) {
+        r#"<meta http-equiv="refresh" content="4;url=/updates">"#
+    } else {
+        ""
+    };
+    let body = format!(
+        r#"{refresh}<p><a href="/">← {back}</a></p>
+<h1>{title}</h1>
+<p>{intro}</p>
+{status}
+{actions}"#,
+        back = escape(t(lang, Text::Back)),
+        title = escape(t(lang, Text::UpdTitle)),
+        intro = escape(t(lang, Text::UpdIntro)),
+    );
+    page(lang, Text::UpdTitle, &logout_form(lang, csrf), &body)
+}
+
 pub fn home(lang: Lang, csrf: &str, message: Option<Notice>) -> String {
     let logout = format!(
         r#"<form method="post" action="/logout">{}<button class="link" type="submit">{}</button></form>"#,
@@ -645,7 +732,7 @@ pub fn home(lang: Lang, csrf: &str, message: Option<Notice>) -> String {
         escape(t(lang, Text::LogOut))
     );
     let body = format!(
-        "<h1>{}</h1>\n{}<p>{}</p>\n<nav class=\"rows\"><a class=\"row\" href=\"/channels\">{}</a><a class=\"row\" href=\"/iptv\">{}</a><a class=\"row\" href=\"/remote\">{}</a><a class=\"row\" href=\"/language\">{}</a><a class=\"row\" href=\"/system\">{}</a></nav>",
+        "<h1>{}</h1>\n{}<p>{}</p>\n<nav class=\"rows\"><a class=\"row\" href=\"/channels\">{}</a><a class=\"row\" href=\"/iptv\">{}</a><a class=\"row\" href=\"/remote\">{}</a><a class=\"row\" href=\"/language\">{}</a><a class=\"row\" href=\"/updates\">{}</a><a class=\"row\" href=\"/system\">{}</a></nav>",
         escape(t(lang, Text::HomeTitle)),
         notice(lang, message),
         escape(t(lang, Text::HomeIntro)),
@@ -653,6 +740,7 @@ pub fn home(lang: Lang, csrf: &str, message: Option<Notice>) -> String {
         escape(t(lang, Text::IptvTitle)),
         escape(t(lang, Text::RemoteTitle)),
         escape(t(lang, Text::LanguageTitle)),
+        escape(t(lang, Text::UpdTitle)),
         escape(t(lang, Text::SystemTitle))
     );
     page(lang, Text::HomeTitle, &logout, &body)

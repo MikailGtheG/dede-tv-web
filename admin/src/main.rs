@@ -139,6 +139,8 @@ fn main() {
         media_root: PathBuf::from(setting("DEDE_MEDIA_ROOT", "/srv/dede-tv/media")),
         iptv_config: PathBuf::from(setting("DEDE_IPTV_CONFIG", "/etc/dede-tv/iptv.conf")),
         tailscale_config: PathBuf::from(setting("DEDE_TS_CONFIG", "/etc/dede-tv/tailscale.conf")),
+        update_state: PathBuf::from(setting("DEDE_UPDATE_STATE", "/etc/dede-tv/update.conf")),
+        version_file: PathBuf::from(setting("DEDE_VERSION_FILE", "/usr/share/dede-tv/version")),
         remote_config: PathBuf::from(setting("DEDE_REMOTE_CONFIG", "/etc/dede-tv/remote.conf")),
     })));
     let server = match tiny_http::Server::http(&listen) {
