@@ -9,6 +9,7 @@ use crate::html::{self, Notice};
 use crate::i18n::{Lang, Text};
 use crate::media;
 use crate::remote;
+use crate::update;
 use std::fs;
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -27,6 +28,8 @@ pub struct Config {
     pub iptv_config: PathBuf,
     pub remote_config: PathBuf,
     pub tailscale_config: PathBuf,
+    pub update_state: PathBuf,
+    pub version_file: PathBuf,
     pub media_root: PathBuf,
 }
 
@@ -289,6 +292,11 @@ impl App {
                 Response::html(200, html::iptv(lang, csrf, host.as_deref(), None))
             }
             ["system"] => Response::html(200, html::system(lang, csrf, notice)),
+            ["updates"] => {
+                let state = update::read(&self.config.update_state, &self.config.version_file);
+                let started = query_value(&request.query, "n").as_deref() == Some("started");
+                Response::html(200, html::updates(lang, csrf, &state, started))
+            }
             ["remote"] => {
                 let state = remote::read(&self.config.remote_config);
                 let home = request
@@ -417,6 +425,24 @@ impl App {
                 request,
                 "WireGuard device",
             );
+        }
+        if let ["updates", action] = parts.as_slice() {
+            let kind = match *action {
+                "check" => "update-check",
+                "install" => "update-install",
+                _ => return Response::html(404, html::rejected(lang)),
+            };
+            return match apply::submit_maintenance(&self.config.state_dir, kind) {
+                Ok(_) => {
+                    eprintln!("dede-tv-admin: {kind} requested from {}", request.remote);
+                    // The page refreshes itself until dede-update has an answer.
+                    Response::redirect("/updates?n=started")
+                }
+                Err(e) => {
+                    eprintln!("dede-tv-admin: cannot queue change: {e}");
+                    Response::redirect("/updates?n=save-failed")
+                }
+            };
         }
         if let ["system", action] = parts.as_slice() {
             let kind = match *action {
@@ -801,6 +827,8 @@ mod tests {
             iptv_config: dir.join("iptv.conf"),
             remote_config: dir.join("remote.conf"),
             tailscale_config: dir.join("tailscale.conf"),
+            update_state: dir.join("update.conf"),
+            version_file: dir.join("version"),
             media_root: dir.join("media"),
         });
         Fixture { app, dir }
@@ -1499,6 +1527,65 @@ mod tests {
             assert!(shown.contains(expected), "{expected}");
         }
         let unknown = post(&mut f.app, "/system/wipe", &cookie, &format!("csrf={csrf}"));
+        assert_eq!(unknown.status, 404);
+    }
+
+    #[test]
+    fn updates_page_checks_installs_and_explains_failures() {
+        let mut f = fixture();
+        let (cookie, csrf) = signed_in(&mut f);
+        fs::write(f.dir.join("version"), "0.1.0-test.1\n").unwrap();
+        assert!(text(&get(&mut f.app, "/", Some(&cookie))).contains("href=\"/updates\""));
+        let page = text(&get(&mut f.app, "/updates", Some(&cookie)));
+        assert!(page.contains("0.1.0-test.1") && page.contains("/updates/check"));
+        assert!(!page.contains("/updates/install") && !page.contains("refresh"));
+        let reply = post(
+            &mut f.app,
+            "/updates/check",
+            &cookie,
+            &format!("csrf={csrf}"),
+        );
+        assert_eq!(header(&reply, "Location"), Some("/updates?n=started"));
+        assert_eq!(pending_request(&f)["kind"], "update-check");
+        assert!(text(&get(&mut f.app, "/updates?n=started", Some(&cookie))).contains("refresh"));
+
+        fs::write(
+            f.dir.join("update.conf"),
+            "UPDATE_STATE=available\nUPDATE_CURRENT=0.1.0-test.1\nUPDATE_AVAILABLE=0.2.0\n",
+        )
+        .unwrap();
+        let page = text(&get(&mut f.app, "/updates", Some(&cookie)));
+        assert!(page.contains("0.2.0") && page.contains("/updates/install"));
+        post(
+            &mut f.app,
+            "/updates/install",
+            &cookie,
+            &format!("csrf={csrf}"),
+        );
+        assert_eq!(pending_request(&f)["kind"], "update-install");
+
+        fs::write(
+            f.dir.join("update.conf"),
+            "UPDATE_STATE=downloading\nUPDATE_PROGRESS=40\n",
+        )
+        .unwrap();
+        let page = text(&get(&mut f.app, "/updates", Some(&cookie)));
+        assert!(
+            page.contains("40 %") && page.contains("refresh") && !page.contains("/updates/check")
+        );
+        fs::write(
+            f.dir.join("update.conf"),
+            "UPDATE_STATE=failed\nUPDATE_MESSAGE=update-did-not-start\n",
+        )
+        .unwrap();
+        let page = text(&get(&mut f.app, "/updates", Some(&cookie)));
+        assert!(page.contains("vorherigen Version") && page.contains("role=\"alert\""));
+        let unknown = post(
+            &mut f.app,
+            "/updates/delete",
+            &cookie,
+            &format!("csrf={csrf}"),
+        );
         assert_eq!(unknown.status, 404);
     }
 

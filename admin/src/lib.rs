@@ -7,3 +7,4 @@ pub mod html;
 pub mod i18n;
 pub mod media;
 pub mod remote;
+pub mod update;
