@@ -694,6 +694,7 @@ pub fn updates(lang: Lang, csrf: &str, state: &crate::update::State, started: bo
                 Some("no-space") => Text::UpdErrNoSpace,
                 Some("no-update-partition") => Text::UpdErrNoPartition,
                 Some("update-did-not-start") => Text::UpdErrDidNotStart,
+                Some("needs-uefi") => Text::UpdErrNeedsUefi,
                 _ => Text::UpdErrOther,
             };
             status.push_str(&format!(

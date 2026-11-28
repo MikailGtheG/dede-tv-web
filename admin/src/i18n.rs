@@ -186,6 +186,7 @@ pub enum Text {
     UpdErrNoPartition,
     UpdErrDidNotStart,
     UpdErrOther,
+    UpdErrNeedsUefi,
     UpdLastCheck,
     UpdCheck,
     UpdInstall,
@@ -728,6 +729,10 @@ pub fn t(lang: Lang, text: Text) -> &'static str {
         (Lang::De, UpdErrOther) => "Unbekannter Fehler.",
         (Lang::Tr, UpdErrOther) => "Bilinmeyen hata.",
         (Lang::En, UpdErrOther) => "Unknown error.",
+
+        (Lang::De, UpdErrNeedsUefi) => "Updates gehen nur, wenn der Rechner im UEFI-Modus startet. Bitte im BIOS-Setup UEFI einstellen und neu installieren.",
+        (Lang::Tr, UpdErrNeedsUefi) => "Güncellemeler yalnızca bilgisayar UEFI modunda başlarsa çalışır. Lütfen BIOS ayarlarında UEFI'yi seçip yeniden kurun.",
+        (Lang::En, UpdErrNeedsUefi) => "Updates only work when the computer starts in UEFI mode. Please choose UEFI in the firmware setup and install again.",
 
         (Lang::De, UpdLastCheck) => "Zuletzt geprüft (UTC):",
         (Lang::Tr, UpdLastCheck) => "Son kontrol (UTC):",
